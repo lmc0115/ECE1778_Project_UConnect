@@ -31,7 +31,7 @@ Furthermore, uConnect seeks to **enhance user experience and motivation** by con
 |  | State Management and Persistence using Redux toolkit and persistent data storage by React Native Async Storage. | Ensures consistent app-wide data handling for user roles, authentication status, and event participation across sessions, providing a seamless and personalized user experience. Implements persistent storage to securely retain and update user information each time a user logs in to the application. |
 |  | (Optional) Accessibility Enhancements with screen reader support. | Supports to ensure inclusive usability for all users. Accessibility features are implemented using React Native’s built-in accessibility APIs to provide clear semantic descriptions of interface elements. In addition to standard accessibility configurations, an **advanced implementation introduces enhanced support for screen readers**, ensuring accurate focus order, content descriptions, and real-time feedback across all screens. The system also supports high-contrast mode to improve visual clarity and readability.  |
 |  | Deployment using **Expo EAS Build** | Utilizes **Expo EAS Build** to generate production-ready builds for both Android and iOS platforms. This approach ensures consistent build configuration and seamless integration with the Expo ecosystem. The resulting application packages are delivered as testable artifacts, enabling efficient testing on emulators and physical devices. This deployment workflow streamlines distribution, facilitates user evaluation, and guarantees that the mobile application functions reliably across multiple environments. |
-<br><br>
+<br>
 
 # Tentative Plan
 
@@ -43,6 +43,7 @@ Furthermore, uConnect seeks to **enhance user experience and motivation** by con
 | Phase 4:  Organizer Tools & Gamification Layer | \- Add an interface for the organizers, which is used to manage or simulate the creation process of the event. <br>\- Introduce a badge and points system to reward users for their participation. <br>\- Display achievements on the user's personal profile. | \- Organizer management screen with create/edit forms. <br>\- Working gamification logic in Redux state. <br>\- Updated Account screen showing badges and history. | Week 11  |
 | Phase 5: Accessibility, Testing & Deployment | \- Implement accessibility features (screen reader support, high contrast mode). <br>\- Conduct device testing and UI refinements. <br>\- Build and test production version with Expo EAS Build. | \- Accessibility verified (TalkBack / VoiceOver). <br>\- Polished animations and navigation transitions. <br>\- Final Android/iOS test builds ready for submission. | Week 12-13 |
 <br>
+
 # Team Responsibilities
 
 | Name | Category | Responsibilities / Tasks |
