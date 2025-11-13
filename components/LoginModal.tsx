@@ -44,7 +44,8 @@ export default function LoginModal({ visible, onClose }: Props) {
 
         <View style={styles.card}>
           <Text style={styles.title}>Login</Text>
-
+          
+          <Text style={styles.label}>Email</Text>
           <TextInput
             placeholder="Email"
             value={email}
@@ -53,6 +54,8 @@ export default function LoginModal({ visible, onClose }: Props) {
             autoCapitalize="none"
             keyboardType="email-address"
           />
+
+          <Text style={styles.label}>Password</Text>
           <TextInput
             placeholder="Password"
             value={pwd}
@@ -217,5 +220,11 @@ const styles = StyleSheet.create({
   ghostButtonText: {
     fontSize: 13,
     color: "#444",
+  },
+  label: {
+  fontSize: 14,
+  fontWeight: "500",
+  color: "#333",
+  marginBottom: 4,
   },
 });
