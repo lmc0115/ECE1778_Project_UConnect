@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, Text, TextInput, View, Button } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, TextInput, View, Alert } from "react-native";
 import { useState } from "react";
 import { useAppDispatch } from "../store/hooks";
 import { signIn } from "../store/slices/userSlice";
@@ -6,40 +6,205 @@ import { signIn } from "../store/slices/userSlice";
 type Props = { visible: boolean; onClose: () => void };
 
 export default function LoginModal({ visible, onClose }: Props) {
-  const [email, setEmail] = useState("");
-  const [pwd, setPwd] = useState("");
-  const [role, setRole] = useState<"student" | "organizer">("student");
-  const dispatch = useAppDispatch();
+    const [email, setEmail] = useState("");
+    const [pwd, setPwd] = useState("");
+    const [role, setRole] = useState<"student" | "organizer">("student");
+    const dispatch = useAppDispatch();
 
-  const onLogin = async () => {
-    // In production, call Supabase Auth here.
-    dispatch(signIn({ email, role }));
-    onClose();
-  };
+    const onLogin = async () => {
+        // In production, call Supabase Auth here.
+        dispatch(signIn({ email, role }));
+        onClose();
+    };
 
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <View />
-      </Pressable>
-      <View style={styles.card}>
-        <Text style={styles.title}>Login</Text>
-        <TextInput placeholder="Email" value={email} onChangeText={setEmail} style={styles.input} autoCapitalize="none" />
-        <TextInput placeholder="Password" value={pwd} onChangeText={setPwd} style={styles.input} secureTextEntry />
-        <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-          <Button title="Student" onPress={() => setRole("student")} />
-          <Button title="Organizer" onPress={() => setRole("organizer")} />
-        </View>
-        <Button title="Login" onPress={onLogin} />
-        <Pressable onPress={onClose} style={{ marginTop: 10 }}><Text style={{ textAlign: "center" }}>Close</Text></Pressable>
-      </View>
-    </Modal>
-  );
+    const onRegister = () => {
+        // TODO: hook up real register flow
+        Alert.alert("Register", "Registration flow is not implemented yet.");
+    };
+
+    const onResetPassword = () => {
+        // TODO: hook up real reset-password flow
+        Alert.alert("Reset password", "Password reset flow is not implemented yet.");
+    };
+
+    return (
+        <Modal visible={visible} transparent animationType="fade">
+            <Pressable style={styles.backdrop} onPress={onClose}>
+                <View />
+            </Pressable>
+            <View style={styles.card}>
+                <Text style={styles.title}>Login</Text>
+                <Text style={styles.subtitle}>Welcome back! Please sign in to continue.</Text>
+
+                <TextInput
+                    placeholder="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    style={styles.input}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                />
+                <TextInput
+                    placeholder="Password"
+                    value={pwd}
+                    onChangeText={setPwd}
+                    style={styles.input}
+                    secureTextEntry
+                />
+
+                <View style={styles.roleRow}>
+                    <Pressable
+                        onPress={() => setRole("student")}
+                        style={[styles.roleChip, role === "student" && styles.roleChipActive]}
+                    >
+                        <Text
+                            style={[styles.roleChipText, role === "student" && styles.roleChipTextActive]}
+                        >
+                            Student
+                        </Text>
+                    </Pressable>
+                    <Pressable
+                        onPress={() => setRole("organizer")}
+                        style={[styles.roleChip, role === "organizer" && styles.roleChipActive]}
+                    >
+                        <Text
+                            style={[styles.roleChipText, role === "organizer" && styles.roleChipTextActive]}
+                        >
+                            Organizer
+                        </Text>
+                    </Pressable>
+                </View>
+
+                <Pressable style={styles.primaryButton} onPress={onLogin}>
+                    <Text style={styles.primaryButtonText}>Login</Text>
+                </Pressable>
+
+                <View style={styles.linkRow}>
+                    <Pressable onPress={onRegister}>
+                        <Text style={styles.linkText}>Register</Text>
+                    </Pressable>
+                    <View style={styles.linkDivider} />
+                    <Pressable onPress={onResetPassword}>
+                        <Text style={styles.linkText}>Reset password</Text>
+                    </Pressable>
+                </View>
+
+                <Pressable onPress={onClose} style={styles.ghostButton}>
+                    <Text style={styles.ghostButtonText}>Continue as guest</Text>
+                </Pressable>
+            </View>
+        </Modal>
+    );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { position: "absolute", inset: 0, backgroundColor: "rgba(0,0,0,0.35)" },
-  card: { position: "absolute", top: "25%", left: 16, right: 16, backgroundColor: "#fff", borderRadius: 16, padding: 16, elevation: 3 },
-  title: { fontSize: 18, fontWeight: "700", marginBottom: 8 },
-  input: { backgroundColor: "#fff", borderRadius: 10, padding: 10, borderWidth: 1, borderColor: "#eee", marginBottom: 8 },
+    backdrop: {
+        position: "absolute",
+        inset: 0,
+        backgroundColor: "rgba(0,0,0,0.35)",
+    },
+    card: {
+        position: "absolute",
+        top: "22%",
+        left: 24,
+        right: 24,
+        backgroundColor: "#ffffff",
+        borderRadius: 18,
+        padding: 20,
+        elevation: 4,
+        shadowColor: "#000",
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: "700",
+        textAlign: "center",
+        marginBottom: 4,
+    },
+    subtitle: {
+        fontSize: 13,
+        color: "#666",
+        textAlign: "center",
+        marginBottom: 16,
+    },
+    input: {
+        backgroundColor: "#f7f7f7",
+        borderRadius: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderWidth: 1,
+        borderColor: "#e1e1e1",
+        marginBottom: 10,
+        fontSize: 14,
+    },
+    roleRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 16,
+    },
+    roleChip: {
+        flex: 1,
+        paddingVertical: 8,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#d0d0d0",
+        alignItems: "center",
+        marginHorizontal: 4,
+        backgroundColor: "#ffffff",
+    },
+    roleChipActive: {
+        backgroundColor: "#2563eb",
+        borderColor: "#2563eb",
+    },
+    roleChipText: {
+        fontSize: 13,
+        color: "#555",
+        fontWeight: "500",
+    },
+    roleChipTextActive: {
+        color: "#ffffff",
+    },
+    primaryButton: {
+        backgroundColor: "#2563eb",
+        borderRadius: 999,
+        paddingVertical: 10,
+        alignItems: "center",
+        marginBottom: 10,
+    },
+    primaryButtonText: {
+        color: "#ffffff",
+        fontSize: 15,
+        fontWeight: "600",
+    },
+    linkRow: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    linkText: {
+        fontSize: 13,
+        color: "#2563eb",
+        textDecorationLine: "underline",
+        paddingHorizontal: 4,
+    },
+    linkDivider: {
+        width: 1,
+        height: 12,
+        backgroundColor: "#ddd",
+        marginHorizontal: 4,
+    },
+    ghostButton: {
+        paddingVertical: 8,
+        borderRadius: 999,
+        borderWidth: 1,
+        borderColor: "#e1e1e1",
+        alignItems: "center",
+    },
+    ghostButtonText: {
+        fontSize: 13,
+        color: "#444",
+    },
 });
