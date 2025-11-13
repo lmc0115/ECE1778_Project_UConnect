@@ -10,7 +10,9 @@ import {
 } from "react-native";
 import { useState } from "react";
 import { useAppDispatch } from "../store/hooks";
-import { signIn } from "../store/slices/userSlice";
+import { loginUser, signupUser } from "../store/slices/userSlice";
+import { supabase } from "../lib/supabase";
+
 
 type Props = { visible: boolean; onClose: () => void };
 
@@ -20,22 +22,89 @@ export default function LoginModal({ visible, onClose }: Props) {
   const [role, setRole] = useState<"student" | "organizer">("student");
   const dispatch = useAppDispatch();
 
+  // ---- LOGIN ----
   const onLogin = async () => {
-    dispatch(signIn({ email, role }));
-    onClose();
+    if (!email || !pwd) {
+      Alert.alert("Missing info", "Please enter both email and password.");
+      return;
+    }
+
+    try {
+      const result = await dispatch(loginUser({ email, password: pwd })).unwrap();
+      console.log("Logged in:", result.user.email, "Role:", result.role);
+      onClose();
+    } catch (err: any) {
+      const message = String(err).toLowerCase();
+
+      if (message.includes("email not confirmed")) {
+        Alert.alert(
+          "Email not confirmed",
+          "We’ve sent you a verification email. Please confirm your email before logging in.",
+          [
+            {
+              text: "Resend Email",
+              onPress: async () => {
+                try {
+                  await supabase.auth.resend({
+                    type: "signup",
+                    email,
+                  });
+                  Alert.alert("Email sent", "Check your inbox for the new confirmation link.");
+                } catch (e: any) {
+                  Alert.alert("Error", e.message);
+                }
+              },
+            },
+            { text: "OK" },
+          ]
+        );
+      } else {
+        Alert.alert("Login failed", String(err));
+      }
+    }
   };
 
-  const onRegister = () => {
-    Alert.alert("Register", "Registration flow is not implemented yet.");
+  // ---- REGISTER ----
+  const onRegister = async () => {
+    if (!email || !pwd) {
+      Alert.alert("Missing info", "Please enter both email and password.");
+      return;
+    }
+
+    try {
+      const result = await dispatch(signupUser({ email, password: pwd, role })).unwrap();
+      console.log("Registered:", result.email, "Role:", role);
+
+      Alert.alert(
+        "Registration successful!",
+        "We've sent a confirmation link to your email.\nPlease verify your account before logging in."
+      );
+      onClose();
+    } catch (err: any) {
+      Alert.alert("Sign-up failed", String(err));
+    }
   };
 
+  // ---- RESET PASSWORD ----
   const onResetPassword = () => {
-    Alert.alert("Reset password", "Password reset flow is not implemented yet.");
+    if (!email) {
+      Alert.alert("Enter email", "Please enter your email first.");
+      return;
+    }
+
+    supabase.auth
+      .resetPasswordForEmail(email)
+      .then(() =>
+        Alert.alert(
+          "Reset link sent",
+          "Check your email for instructions to reset your password."
+        )
+      )
+      .catch((err) => Alert.alert("Error", err.message));
   };
 
-  const onContinueAsGuest = () => {
-    onClose();
-  };
+  // ---- CONTINUE AS GUEST ----
+  const onContinueAsGuest = () => onClose();
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -44,7 +113,7 @@ export default function LoginModal({ visible, onClose }: Props) {
 
         <View style={styles.card}>
           <Text style={styles.title}>Login</Text>
-          
+
           <Text style={styles.label}>Email</Text>
           <TextInput
             placeholder="Email"
@@ -222,9 +291,9 @@ const styles = StyleSheet.create({
     color: "#444",
   },
   label: {
-  fontSize: 14,
-  fontWeight: "500",
-  color: "#333",
-  marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 4,
   },
 });
