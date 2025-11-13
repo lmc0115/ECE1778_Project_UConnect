@@ -18,10 +18,10 @@ import AppButton from "./AppButton";
 type Props = { visible: boolean; onClose: () => void };
 
 export default function LoginModal({ visible, onClose }: Props) {
-    const [email, setEmail] = useState("");
-    const [pwd, setPwd] = useState("");
-    const [role, setRole] = useState<"student" | "organizer">("student");
-    const dispatch = useAppDispatch();
+  const [email, setEmail] = useState("");
+  const [pwd, setPwd] = useState("");
+  const [role, setRole] = useState<"student" | "organizer">("student");
+  const dispatch = useAppDispatch();
 
   // ---- LOGIN ----
   const onLogin = async () => {
