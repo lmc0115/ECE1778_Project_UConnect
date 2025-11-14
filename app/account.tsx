@@ -42,6 +42,6 @@ export default function Account() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 56, paddingHorizontal: 16, gap: 10 },
+  container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
 });

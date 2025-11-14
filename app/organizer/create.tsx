@@ -149,7 +149,7 @@ export default function CreateOrEditActivity() {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12 },
+  container: {flex: 1, paddingTop: 56, paddingHorizontal: 16, gap: 12 },
   heading: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
   input: { borderWidth: 1, borderColor: "#ccc", padding: 10, borderRadius: 8 },
   image: { width: "100%", height: 160, marginTop: 10, borderRadius: 8 },
