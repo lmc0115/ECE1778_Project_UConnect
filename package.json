@@ -15,12 +15,15 @@
     "@supabase/supabase-js": "^2.46.1",
     "expo": "~54.0.23",
     "expo-constants": "~18.0.10",
+    "expo-image": "~3.0.10",
     "expo-image-picker": "~17.0.8",
     "expo-linking": "~8.0.8",
+    "expo-media-library": "~18.2.0",
     "expo-notifications": "~0.32.12",
     "expo-router": "~6.0.14",
     "expo-status-bar": "~3.0.8",
     "react": "19.1.0",
+    "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
@@ -28,8 +31,26 @@
   },
   "devDependencies": {
     "@babel/core": "^7.28.5",
-    "@types/react": "~19.1.0",
+    "@types/react": "~19.1.10",
     "babel-preset-expo": "^54.0.7",
     "typescript": "~5.9.2"
+  },
+  "expo": {
+    "plugins": [
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow UConnect to save photos.",
+          "savephotosPermission": "Allow UConnect to save photos to your library."
+        }
+      ]
+    ],
+    "android": {
+      "permissions": [
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    }
   }
 }
