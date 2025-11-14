@@ -22,7 +22,7 @@ export const signupUser = createAsyncThunk(
       password,
       options: {
         data: { role }, // save role in Supabase user_metadata
-        emailRedirectTo: "exp://127.0.0.1:19000", // change this to your Expo dev URL
+        //emailRedirectTo: "exp://127.0.0.1:19000", // change this to your Expo dev URL
       },
     });
     if (error) return rejectWithValue(error.message);
