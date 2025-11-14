@@ -4,16 +4,29 @@ import { store } from "../store/store";
 import { useEffect } from "react";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import * as Linking from "expo-linking";
 
-// Set global notification behavior
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
-    shouldShowBanner: true, // Added for Expo SDK 54 typing
+    shouldShowBanner: true,
   }),
 });
+
+// Deep linking config
+const linking = {
+  prefixes: ["uconnect://"],
+  config: {
+    screens: {
+      index: "",
+      mylist: "mylist",
+      account: "account",
+      resetPassword: "reset-password",
+    },
+  },
+};
 
 export default function RootLayout() {
   useEffect(() => {
@@ -34,11 +47,14 @@ export default function RootLayout() {
 
   return (
     <Provider store={store}>
-      <Tabs screenOptions={{ headerShown: false }}>
+      <Tabs screenOptions={{ headerShown: false }} linking={linking}>
         <Tabs.Screen name="index" options={{ title: "Activity" }} />
-        <Tabs.Screen name="calendar" options={{ title: "Calendar" }} />
         <Tabs.Screen name="mylist" options={{ title: "My List" }} />
         <Tabs.Screen name="account" options={{ title: "Account" }} />
+        <Tabs.Screen
+          name="reset-password"
+          options={{ title: "Reset Password", href: "/reset-password" }}
+        />
       </Tabs>
     </Provider>
   );
