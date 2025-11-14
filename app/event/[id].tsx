@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Image,
@@ -20,6 +20,7 @@ import {
 import * as Notifications from "expo-notifications";
 import ImageModal from "../../components/ImageModal";
 import AppButton from "../../components/AppButton";
+import { useFocusEffect } from "@react-navigation/native";
 
 import {
   isUserRegistered,
@@ -39,28 +40,39 @@ export default function EventDetails() {
   const user = useAppSelector(selectUser);
   const router = useRouter();
 
-  // registration state
   const [registered, setRegistered] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regStatusLoading, setRegStatusLoading] = useState(true);
 
   /* -------------------------------------------------------------
-     LOAD EVENT DETAILS
+     AUTO-REFRESH EVENT DETAILS WHEN SCREEN IS FOCUSED
   ------------------------------------------------------------- */
-  useEffect(() => {
-    if (!id) return;
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
 
-    (async () => {
-      const { data, error } = await supabase
-        .from("activities")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const loadEvent = async () => {
+        if (!id) return;
 
-      if (!error) setEvent(data);
-      setLoading(false);
-    })();
-  }, [id]);
+        const { data, error } = await supabase
+          .from("activities")
+          .select("*")
+          .eq("id", id)
+          .single();
+
+        if (!error && isActive) {
+          setEvent(data);
+        }
+        setLoading(false);
+      };
+
+      loadEvent();
+
+      return () => {
+        isActive = false;
+      };
+    }, [id])
+  );
 
   /* -------------------------------------------------------------
      CHECK IF USER IS REGISTERED
@@ -115,6 +127,8 @@ export default function EventDetails() {
       }
 
       setRegistered(true);
+      // Refresh My List next time user enters
+      router.setParams({ refresh: "1" });
     } catch (err: any) {
       console.error("Register error:", err);
       Alert.alert("Error", err.message ?? "Failed to register.");
@@ -142,7 +156,17 @@ export default function EventDetails() {
               setRegLoading(true);
               await cancelRegistration(String(id));
               setRegistered(false);
-              Alert.alert("Cancelled", "Registration removed.");
+              Alert.alert("Cancelled", "Registration removed.", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    router.push({
+                      pathname: "/mylist",
+                      params: { refresh: "1" }, // tell MyList to reload
+                    });
+                  },
+                },
+              ]);
             } catch (err: any) {
               console.error("Cancel registration error:", err);
               Alert.alert("Error", err.message ?? "Failed to cancel.");
@@ -158,17 +182,18 @@ export default function EventDetails() {
   /* -------------------------------------------------------------
      RENDER
   ------------------------------------------------------------- */
-  if (!event) {
+  if (loading || !event) {
     return (
       <View style={styles.center}>
-        <Text>Event not found.</Text>
+        <ActivityIndicator size="large" />
+        <Text style={{ marginTop: 10 }}>Loading event...</Text>
       </View>
     );
   }
 
   return (
     <>
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
         <Text style={styles.title}>{event.title}</Text>
 
         {event.image_urls?.length > 0 &&
@@ -224,7 +249,7 @@ export default function EventDetails() {
               onPress={() =>
                 router.push({
                   pathname: "/organizer/create",
-                  params: { edit: "1", id },
+                  params: { mode: "edit", id },
                 })
               }
             />
@@ -241,9 +266,6 @@ export default function EventDetails() {
   );
 }
 
-/* -------------------------------------------------------------
-   STYLES
-------------------------------------------------------------- */
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
