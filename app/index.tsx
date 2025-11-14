@@ -21,6 +21,8 @@ export default function ActivityScreen() {
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const refreshFlag = useAppSelector((state) => state.activityRefresh.refreshFlag);
+
   const router = useRouter();
 
   // --- Fetch activities from Supabase ---
@@ -39,7 +41,7 @@ export default function ActivityScreen() {
 
   useEffect(() => {
     loadActivities();
-  }, [loadActivities]);
+  }, [loadActivities, refreshFlag]);
 
   // --- Loading state ---
   if (loading) {
