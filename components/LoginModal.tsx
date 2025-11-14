@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useAppDispatch } from "../store/hooks";
 import { loginUser, signupUser } from "../store/slices/userSlice";
 import { supabase } from "../lib/supabase";
+import AppButton from "./AppButton";
 
 
 type Props = { visible: boolean; onClose: () => void };
@@ -162,9 +163,8 @@ export default function LoginModal({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          <Pressable style={styles.primaryButton} onPress={onLogin}>
-            <Text style={styles.primaryButtonText}>Login</Text>
-          </Pressable>
+          < AppButton title = "Login" onPress = { onLogin } type = "primary" />
+
 
           <View style={styles.linkRow}>
             <Pressable onPress={onRegister}>
@@ -176,9 +176,11 @@ export default function LoginModal({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          <Pressable onPress={onContinueAsGuest} style={styles.ghostButton}>
-            <Text style={styles.ghostButtonText}>Continue as guest</Text>
-          </Pressable>
+          < AppButton
+             title = "Continue as guest"
+             onPress = { onContinueAsGuest }
+             type = "ghost"
+          />
         </View>
       </SafeAreaView>
     </Modal>
@@ -249,18 +251,6 @@ const styles = StyleSheet.create({
   roleChipTextActive: {
     color: "#ffffff",
   },
-  primaryButton: {
-    backgroundColor: "#2563eb",
-    borderRadius: 999,
-    paddingVertical: 10,
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  primaryButtonText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "600",
-  },
   linkRow: {
     flexDirection: "row",
     justifyContent: "center",
@@ -278,17 +268,6 @@ const styles = StyleSheet.create({
     height: 12,
     backgroundColor: "#ddd",
     marginHorizontal: 4,
-  },
-  ghostButton: {
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#e1e1e1",
-    alignItems: "center",
-  },
-  ghostButtonText: {
-    fontSize: 13,
-    color: "#444",
   },
   label: {
     fontSize: 14,
