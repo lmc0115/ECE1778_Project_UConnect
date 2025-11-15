@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from "react";
-import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Image,
   ScrollView,
@@ -21,6 +20,7 @@ import * as Notifications from "expo-notifications";
 import ImageModal from "../../components/ImageModal";
 import AppButton from "../../components/AppButton";
 import { useFocusEffect } from "@react-navigation/native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import {
   isUserRegistered,
@@ -28,11 +28,28 @@ import {
   cancelRegistration,
 } from "../../lib/activities";
 
+/* -------------------------------------------------------------
+   Helper: Send push notification
+------------------------------------------------------------- */
+async function sendPush(token: string, title: string, body: string) {
+  if (!token) return;
+
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: token,
+      sound: "default",
+      title,
+      body,
+    }),
+  });
+}
+
 export default function EventDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-
   const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
 
   const authed = useAppSelector(selectIsAuthed);
@@ -45,37 +62,33 @@ export default function EventDetails() {
   const [regStatusLoading, setRegStatusLoading] = useState(true);
 
   /* -------------------------------------------------------------
-     AUTO-REFRESH EVENT DETAILS WHEN SCREEN IS FOCUSED
+     REFRESH EVENT WHEN SCREEN FOCUSED
   ------------------------------------------------------------- */
   useFocusEffect(
     useCallback(() => {
-      let isActive = true;
+      let active = true;
 
       const loadEvent = async () => {
         if (!id) return;
-
         const { data, error } = await supabase
           .from("activities")
           .select("*")
           .eq("id", id)
           .single();
 
-        if (!error && isActive) {
-          setEvent(data);
-        }
+        if (!error && active) setEvent(data);
         setLoading(false);
       };
 
       loadEvent();
-
       return () => {
-        isActive = false;
+        active = false;
       };
     }, [id])
   );
 
   /* -------------------------------------------------------------
-     CHECK IF USER IS REGISTERED
+     CHECK USER REGISTRATION STATUS
   ------------------------------------------------------------- */
   useEffect(() => {
     setRegistered(false);
@@ -90,8 +103,6 @@ export default function EventDetails() {
       try {
         const status = await isUserRegistered(String(id));
         setRegistered(status);
-      } catch (err) {
-        console.error("Failed to check registration:", err);
       } finally {
         setRegStatusLoading(false);
       }
@@ -99,16 +110,53 @@ export default function EventDetails() {
   }, [id, authed, role]);
 
   /* -------------------------------------------------------------
+     FETCH ORGANIZER TOKEN
+  ------------------------------------------------------------- */
+  const fetchOrganizerPushToken = async (organizerId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("expo_push_token")
+      .eq("id", organizerId)
+      .maybeSingle();
+
+    return data?.expo_push_token ?? null;
+  };
+
+  /* -------------------------------------------------------------
+     FETCH ALL REGISTERED STUDENT TOKENS
+  ------------------------------------------------------------- */
+  const fetchStudentTokens = async (activityId: string) => {
+    const { data: regs } = await supabase
+      .from("registrations")
+      .select("user_id")
+      .eq("activity_id", activityId);
+
+    if (!regs || regs.length === 0) return [];
+
+    const ids = regs.map((r) => r.user_id);
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("expo_push_token")
+      .in("id", ids);
+
+    return profiles
+      .map((p) => p.expo_push_token)
+      .filter((t) => Boolean(t));
+  };
+
+  /* -------------------------------------------------------------
      REGISTER
   ------------------------------------------------------------- */
   const handleRegister = async () => {
-    if (!id) return;
+    if (!id || !event) return;
 
     try {
       setRegLoading(true);
 
       const result = await registerForActivity(String(id));
 
+      // schedule reminder
       const start = new Date(`${event.date} ${event.start_time}`);
       const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
 
@@ -120,17 +168,31 @@ export default function EventDetails() {
         trigger: { type: "date", date: reminderTime },
       });
 
-      if (result.alreadyRegistered) {
-        Alert.alert("Already registered", "You already registered for this event.");
-      } else {
-        Alert.alert("Registered", "We’ll remind you before the event starts.");
+      // --- Send push to organizer
+      const organizerToken = await fetchOrganizerPushToken(event.organizer_id);
+      if (organizerToken) {
+        const { count } = await supabase
+          .from("registrations")
+          .select("*", { count: "exact", head: true })
+          .eq("activity_id", id);
+
+        await sendPush(
+          organizerToken,
+          "New registration",
+          `A student just registered for "${event.title}". Total: ${count}`
+        );
       }
 
+      Alert.alert(
+        result.alreadyRegistered ? "Already registered" : "Registered",
+        result.alreadyRegistered
+          ? "You already registered for this event."
+          : "We’ll remind you before the event starts."
+      );
+
       setRegistered(true);
-      // Refresh My List next time user enters
-      router.setParams({ refresh: "1" });
+      router.setParams({ refresh: "1" }); // refresh My List
     } catch (err: any) {
-      console.error("Register error:", err);
       Alert.alert("Error", err.message ?? "Failed to register.");
     } finally {
       setRegLoading(false);
@@ -155,20 +217,32 @@ export default function EventDetails() {
             try {
               setRegLoading(true);
               await cancelRegistration(String(id));
-              setRegistered(false);
+
+              // notify organizer
+              const organizerToken = await fetchOrganizerPushToken(
+                event.organizer_id
+              );
+              if (organizerToken) {
+                await sendPush(
+                  organizerToken,
+                  "Registration cancelled",
+                  `A student removed their registration from "${event.title}".`
+                );
+              }
+
               Alert.alert("Cancelled", "Registration removed.", [
                 {
                   text: "OK",
-                  onPress: () => {
+                  onPress: () =>
                     router.push({
                       pathname: "/mylist",
-                      params: { refresh: "1" }, // tell MyList to reload
-                    });
-                  },
+                      params: { refresh: "1" },
+                    }),
                 },
               ]);
+
+              setRegistered(false);
             } catch (err: any) {
-              console.error("Cancel registration error:", err);
               Alert.alert("Error", err.message ?? "Failed to cancel.");
             } finally {
               setRegLoading(false);
@@ -193,7 +267,10 @@ export default function EventDetails() {
 
   return (
     <>
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 120 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 120 }}
+      >
         <Text style={styles.title}>{event.title}</Text>
 
         {event.image_urls?.length > 0 &&
@@ -209,37 +286,33 @@ export default function EventDetails() {
 
         <Text style={styles.desc}>{event.introduction}</Text>
 
-        {/* STUDENT REGISTER / CANCEL */}
-        <View style={{ marginTop: 16 }}>
-          {role !== "organizer" && (
-            <>
-              {authed ? (
-                regStatusLoading ? (
-                  <AppButton title="Loading..." disabled />
-                ) : registered ? (
-                  <AppButton
-                    title={regLoading ? "Cancelling..." : "Cancel Registration"}
-                    onPress={handleCancel}
-                    disabled={regLoading}
-                    color="#DC2626"
-                  />
-                ) : (
-                  <AppButton
-                    title={regLoading ? "Registering..." : "Register Now"}
-                    onPress={handleRegister}
-                    disabled={regLoading}
-                    color="#2563eb"
-                  />
-                )
-              ) : (
-                <AppButton
-                  title="Login to Register"
-                  onPress={() => router.replace("/")}
-                />
-              )}
-            </>
-          )}
-        </View>
+        {/* STUDENT BUTTONS */}
+        {role !== "organizer" && (
+          <View style={{ marginTop: 16 }}>
+            {!authed ? (
+              <AppButton
+                title="Login to Register"
+                onPress={() => router.replace("/")}
+              />
+            ) : regStatusLoading ? (
+              <AppButton title="Loading..." disabled />
+            ) : registered ? (
+              <AppButton
+                title={regLoading ? "Cancelling..." : "Cancel Registration"}
+                onPress={handleCancel}
+                disabled={regLoading}
+                color="#DC2626"
+              />
+            ) : (
+              <AppButton
+                title={regLoading ? "Registering..." : "Register Now"}
+                onPress={handleRegister}
+                disabled={regLoading}
+                color="#2563eb"
+              />
+            )}
+          </View>
+        )}
 
         {/* ORGANIZER EDIT */}
         {role === "organizer" && (

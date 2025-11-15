@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { supabase } from "../../lib/supabase";
 import { RootState } from "../store";
+import * as Notifications from "expo-notifications";
 
 /* ============================================================
    Helper — ensure profile exists
@@ -24,6 +25,7 @@ async function ensureProfile(userId: string, email: string) {
         id: userId,
         username,
         avatar_url: null,
+        expo_push_token: null,
       },
     ])
     .select()
@@ -52,6 +54,7 @@ export const fetchUserProfile = createAsyncThunk(
       username: profile.username ?? "",
       avatar_url: profile.avatar_url ?? null,
       role: user.user_metadata?.role ?? "student",
+      expoPushToken: profile.expo_push_token ?? null,
     };
   }
 );
@@ -103,6 +106,30 @@ export const updateAvatarUrl = createAsyncThunk(
 );
 
 /* ============================================================
+   SAVE EXPO PUSH TOKEN
+   (call this from a component after you get the token)
+============================================================ */
+export const saveExpoPushToken = createAsyncThunk(
+  "user/saveExpoPushToken",
+  async (expoPushToken: string, { rejectWithValue }) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return rejectWithValue("Not logged in");
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ expo_push_token: expoPushToken })
+      .eq("id", user.id);
+
+    if (error) return rejectWithValue(error.message);
+
+    return expoPushToken;
+  }
+);
+
+/* ============================================================
    SIGNUP
 ============================================================ */
 export const signupUser = createAsyncThunk(
@@ -120,7 +147,7 @@ export const signupUser = createAsyncThunk(
       password,
       options: {
         data: { role },
-        emailRedirectTo: "uconnect://",   // ← redirect to home screen
+        emailRedirectTo: "uconnect://", // ← redirect to home screen
       },
     });
 
@@ -135,6 +162,7 @@ export const signupUser = createAsyncThunk(
       role,
       username: email.split("@")[0],
       avatar_url: null,
+      expoPushToken: null,
     };
   }
 );
@@ -165,6 +193,7 @@ export const loginUser = createAsyncThunk(
       role: user.user_metadata?.role ?? "student",
       username: profile.username ?? "",
       avatar_url: profile.avatar_url ?? null,
+      expoPushToken: profile.expo_push_token ?? null,
     };
   }
 );
@@ -186,13 +215,13 @@ const userSlice = createSlice({
     role: null as "student" | "organizer" | null,
     username: "",
     avatar_url: null as string | null,
+    expoPushToken: null as string | null,
     status: "idle" as "idle" | "loading" | "succeeded" | "failed",
     error: null as string | null,
   },
   reducers: {},
   extraReducers: (builder) => {
     builder
-
       /* LOGIN */
       .addCase(loginUser.pending, (state) => {
         state.status = "loading";
@@ -203,6 +232,7 @@ const userSlice = createSlice({
         state.role = action.payload.role;
         state.username = action.payload.username;
         state.avatar_url = action.payload.avatar_url;
+        state.expoPushToken = action.payload.expoPushToken ?? null;
         state.error = null;
       })
       .addCase(loginUser.rejected, (state, action) => {
@@ -215,7 +245,8 @@ const userSlice = createSlice({
         state.user = action.payload.user;
         state.role = action.payload.role;
         state.username = action.payload.username;
-        state.avatar_url = null;
+        state.avatar_url = action.payload.avatar_url;
+        state.expoPushToken = action.payload.expoPushToken ?? null;
         state.status = "succeeded";
       })
 
@@ -225,6 +256,7 @@ const userSlice = createSlice({
         state.role = null;
         state.username = "";
         state.avatar_url = null;
+        state.expoPushToken = null;
         state.status = "idle";
       })
 
@@ -234,6 +266,7 @@ const userSlice = createSlice({
         state.role = action.payload.role;
         state.username = action.payload.username;
         state.avatar_url = action.payload.avatar_url;
+        state.expoPushToken = action.payload.expoPushToken ?? null;
       })
 
       /* UPDATE USERNAME */
@@ -244,6 +277,11 @@ const userSlice = createSlice({
       /* UPDATE AVATAR */
       .addCase(updateAvatarUrl.fulfilled, (state, action) => {
         state.avatar_url = action.payload;
+      })
+
+      /* SAVE EXPO PUSH TOKEN */
+      .addCase(saveExpoPushToken.fulfilled, (state, action) => {
+        state.expoPushToken = action.payload;
       });
   },
 });
@@ -260,3 +298,5 @@ export const selectUsername = (state: RootState) => state.user.username;
 export const selectAvatarUrl = (state: RootState) => state.user.avatar_url;
 export const selectUserStatus = (state: RootState) => state.user.status;
 export const selectUserError = (state: RootState) => state.user.error;
+export const selectExpoPushToken = (state: RootState) =>
+  state.user.expoPushToken;

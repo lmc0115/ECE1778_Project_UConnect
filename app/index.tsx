@@ -1,3 +1,4 @@
+// app/index.tsx
 import { useEffect, useState, useCallback } from "react";
 import {
   FlatList,
@@ -13,22 +14,28 @@ import { useAppSelector } from "../store/hooks";
 import LoginModal from "../components/LoginModal";
 import ActivityCard from "../components/ActivityCard";
 import { fetchActivities } from "../lib/activities";
-import { selectIsAuthed } from "../store/slices/userSlice";
+import {
+  selectIsAuthed,
+} from "../store/slices/userSlice";
 
 export default function ActivityScreen() {
   const authed = useAppSelector(selectIsAuthed);
+  const refreshFlag = useAppSelector((state) => state.activityRefresh.refreshFlag);
+
   const [showPrompt, setShowPrompt] = useState(!authed);
   const [activities, setActivities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const refreshFlag = useAppSelector((state) => state.activityRefresh.refreshFlag);
 
   const router = useRouter();
 
-  // --- Fetch activities from Supabase ---
+  /* -----------------------------------------------------------
+     FETCH ALL ACTIVITIES
+  ----------------------------------------------------------- */
   const loadActivities = useCallback(async () => {
     try {
       setRefreshing(true);
+
       const data = await fetchActivities();
       setActivities(data || []);
     } catch (err) {
@@ -39,11 +46,16 @@ export default function ActivityScreen() {
     }
   }, []);
 
+  /* -----------------------------------------------------------
+     FIRST LOAD + REFRESH WHEN refreshFlag CHANGES
+  ----------------------------------------------------------- */
   useEffect(() => {
     loadActivities();
   }, [loadActivities, refreshFlag]);
 
-  // --- Loading state ---
+  /* -----------------------------------------------------------
+     LOADING STATE
+  ----------------------------------------------------------- */
   if (loading) {
     return (
       <View style={styles.center}>
@@ -53,7 +65,9 @@ export default function ActivityScreen() {
     );
   }
 
-  // --- Empty state ---
+  /* -----------------------------------------------------------
+     EMPTY STATE
+  ----------------------------------------------------------- */
   if (!activities.length) {
     return (
       <View style={styles.center}>
@@ -61,6 +75,7 @@ export default function ActivityScreen() {
         <Pressable onPress={loadActivities}>
           <Text style={styles.retry}>↻ Refresh</Text>
         </Pressable>
+
         {!authed && (
           <LoginModal visible={showPrompt} onClose={() => setShowPrompt(false)} />
         )}
@@ -68,7 +83,9 @@ export default function ActivityScreen() {
     );
   }
 
-  // --- Render list ---
+  /* -----------------------------------------------------------
+     RENDER LIST
+  ----------------------------------------------------------- */
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Activities</Text>
@@ -95,9 +112,9 @@ export default function ActivityScreen() {
   );
 }
 
-/* ---------------------------
-   Styles
----------------------------- */
+/* -----------------------------------------------------------
+   STYLES
+----------------------------------------------------------- */
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
