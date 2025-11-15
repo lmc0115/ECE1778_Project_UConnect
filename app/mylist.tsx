@@ -1,3 +1,4 @@
+// app/mylist.tsx
 import { useEffect, useState, useCallback } from "react";
 import {
   FlatList,
@@ -8,21 +9,19 @@ import {
   RefreshControl,
   Pressable,
 } from "react-native";
-
 import { useRouter } from "expo-router";
 import { supabase } from "../lib/supabase";
-
 import { useAppSelector } from "../store/hooks";
 import { selectRole, selectUser } from "../store/slices/userSlice";
-import { selectActivityRefreshFlag } from "../store/slices/activityRefreshSlice";
-
 import ActivityCard from "../components/ActivityCard";
 import { useFocusEffect } from "@react-navigation/native";
 
 export default function MyListScreen() {
-  const reduxRole = useAppSelector(selectRole);
-  const reduxUser = useAppSelector(selectUser);
-  const refreshFlag = useAppSelector(selectActivityRefreshFlag);
+  const role = useAppSelector(selectRole);
+  const user = useAppSelector(selectUser);
+  const refreshFlag = useAppSelector(
+    (state) => state.activityRefresh.refreshFlag
+  );
 
   const router = useRouter();
 
@@ -30,19 +29,14 @@ export default function MyListScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  /* ---------------------------------------------------------
-      Always load REAL USER from supabase auth
-  ---------------------------------------------------------- */
+  /* -------------------------------------------------------
+     Load My Activities (for student or organizer)
+  -------------------------------------------------------- */
   const loadMyActivities = useCallback(async () => {
     try {
       setRefreshing(true);
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      console.log("DEBUG → Real user =", user);
-
+      // User not logged in
       if (!user) {
         setActivities([]);
         setLoading(false);
@@ -50,25 +44,16 @@ export default function MyListScreen() {
         return;
       }
 
-      // 🔥 REAL ROLE from Supabase metadata (never stale)
-      const realRole = user.user_metadata?.role || reduxRole;
-
-      console.log("DEBUG → REAL ROLE determined =", realRole);
-
       let result: any[] = [];
 
-      /* ------------------------
-         STUDENT LOGIC
-      ------------------------- */
-      if (realRole === "student") {
-        const { data: regs, error: regErr } = await supabase
+      if (role === "student") {
+        // Fetch registered event IDs
+        const { data: regs } = await supabase
           .from("registrations")
           .select("activity_id")
           .eq("user_id", user.id);
 
-        console.log("DEBUG → Student registrations =", regs);
-
-        if (regs?.length > 0) {
+        if (regs?.length) {
           const ids = regs.map((r) => r.activity_id);
 
           const { data: acts } = await supabase
@@ -79,12 +64,8 @@ export default function MyListScreen() {
 
           result = acts || [];
         }
-      }
-
-      /* ------------------------
-         ORGANIZER LOGIC
-      ------------------------- */
-      else if (realRole === "organizer") {
+      } else if (role === "organizer") {
+        // Fetch organizer-created events
         const { data: acts } = await supabase
           .from("activities")
           .select("*")
@@ -101,33 +82,31 @@ export default function MyListScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [reduxRole]);
+  }, [user, role]);
 
-  /* FIRST LOAD */
+  /* -------------------------------------------------------
+     Load on:
+     - First load
+     - Role change
+     - User change
+     - refreshFlag change
+  -------------------------------------------------------- */
   useEffect(() => {
     loadMyActivities();
-  }, []);
+  }, [loadMyActivities, user, role, refreshFlag]);
 
-  /* REFRESH when:
-     - user logs in/logs out
-     - user switches accounts
-     - role changes
-     - details page triggers refreshFlag
-  */
-  useEffect(() => {
-    loadMyActivities();
-  }, [reduxUser, reduxRole, refreshFlag]);
-
-  /* REFRESH when returning to this tab */
+  /* -------------------------------------------------------
+     Also reload when returning to MyList
+  -------------------------------------------------------- */
   useFocusEffect(
     useCallback(() => {
       loadMyActivities();
-    }, [refreshFlag])
+    }, [user, role, refreshFlag])
   );
 
-  /* ------------------------------
-        Loading UI
-  ------------------------------*/
+  /* -------------------------------------------------------
+     Loading state
+  -------------------------------------------------------- */
   if (loading) {
     return (
       <View style={styles.center}>
@@ -137,19 +116,20 @@ export default function MyListScreen() {
     );
   }
 
-  /* ------------------------------
-        Empty UI
-  ------------------------------*/
+  /* -------------------------------------------------------
+     Empty state
+  -------------------------------------------------------- */
   if (!activities.length) {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyText}>
-          {reduxRole === "student"
+          {role === "student"
             ? "You haven't registered for any activities yet."
             : "You haven't created any activities yet."}
         </Text>
 
-        {reduxRole === "organizer" && (
+        {/* Organizer create button */}
+        {role === "organizer" && user && (
           <Pressable onPress={() => router.push("/organizer/create")}>
             <Text style={styles.create}>＋ Create New Activity</Text>
           </Pressable>
@@ -158,13 +138,13 @@ export default function MyListScreen() {
     );
   }
 
-  /* ------------------------------
-        Render list
-  ------------------------------*/
+  /* -------------------------------------------------------
+     Render list
+  -------------------------------------------------------- */
   return (
     <View style={styles.container}>
       <Text style={styles.title}>
-        {reduxRole === "student" ? "My Registered Activities" : "My Activities"}
+        {role === "student" ? "My Registered Activities" : "My Activities"}
       </Text>
 
       <FlatList
@@ -173,44 +153,39 @@ export default function MyListScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={loadMyActivities} />
         }
-        contentContainerStyle={{ paddingBottom: 80 }} // space for button
+        contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item }) => (
           <ActivityCard
             item={item}
             onPress={() => router.push(`/event/${item.id}`)}
           />
         )}
-        ListFooterComponent={
-          reduxRole === "organizer" ? (
-            <Pressable
-              style={styles.createBtn}
-              onPress={() => router.push("/organizer/create")}
-            >
-              <Text style={styles.create}>＋ Create New Activity</Text>
-            </Pressable>
-          ) : null
-        }
       />
+
+      {/* Organizer create button */}
+      {role === "organizer" && user && (
+        <Pressable
+          style={styles.createBtn}
+          onPress={() => router.push("/organizer/create")}
+        >
+          <Text style={styles.create}>＋ Create New Activity</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
+/* -------------------------------------------------------
+   Styles
+-------------------------------------------------------- */
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
-  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+
+  center: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingText: { marginTop: 8, color: "#666" },
   emptyText: { fontSize: 16, color: "#777", textAlign: "center", padding: 20 },
 
-  create: {
-    marginTop: 12,
-    fontSize: 18,
-    color: "#2563eb",
-    textAlign: "center",
-  },
-  createBtn: {
-    marginTop: 20,
-    marginBottom: 30,
-    alignSelf: "center",
-  },
+  create: { marginTop: 12, fontSize: 18, color: "#2563eb" },
+  createBtn: { marginTop: 20, alignSelf: "center" },
 });

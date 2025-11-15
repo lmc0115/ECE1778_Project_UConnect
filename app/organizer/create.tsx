@@ -18,14 +18,68 @@ import {
 } from "../../lib/activities";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
-import { useAppDispatch } from "../../store/hooks";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { triggerRefresh } from "../../store/slices/activityRefreshSlice";
+import * as Notifications from "expo-notifications";
+import { supabase } from "../../lib/supabase";
+
+/* -------------------------------------------------------------
+   Helper: Push notification sender
+------------------------------------------------------------- */
+async function sendPush(token: string, title: string, body: string) {
+  if (!token) return;
+
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: token,
+      sound: "default",
+      title,
+      body,
+    }),
+  });
+}
+
+/* -------------------------------------------------------------
+   Fetch tokens: organizer + all students
+------------------------------------------------------------- */
+async function getRegisteredStudentTokens(activityId: string) {
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("user_id")
+    .eq("activity_id", activityId);
+
+  if (!regs || regs.length === 0) return [];
+
+  const ids = regs.map((r) => r.user_id);
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("expo_push_token")
+    .in("id", ids);
+
+  return profiles
+    .map((p) => p.expo_push_token)
+    .filter((t) => Boolean(t));
+}
+
+async function getOrganizerToken(organizerId: string) {
+  const { data } = await supabase
+    .from("profiles")
+    .select("expo_push_token")
+    .eq("id", organizerId)
+    .maybeSingle();
+
+  return data?.expo_push_token ?? null;
+}
 
 export default function CreateOrEditActivity() {
   const { mode, id } = useLocalSearchParams<{ mode: string; id: string }>();
   const editing = mode === "edit";
   const router = useRouter();
   const dispatch = useAppDispatch();
+  const user = useAppSelector((state) => state.user.user);
 
   const [initialData, setInitialData] = useState<any>(null);
 
@@ -38,36 +92,27 @@ export default function CreateOrEditActivity() {
   const [uploading, setUploading] = useState(false);
 
   /* -------------------------------------------------------
-      RESET FORM FOR CREATE MODE
-  --------------------------------------------------------- */
-  const clearForm = () => {
-    setInitialData(null);
-    setTitle("");
-    setDate("");
-    setStartTime("");
-    setLocation("");
-    setIntro("");
-    setImages([]);
-  };
-
-  /* -------------------------------------------------------
-      LOAD OR RESET ON SCREEN FOCUS
+      LOAD ACTIVITY DATA ON FOCUS (EDIT MODE)
   --------------------------------------------------------- */
   useFocusEffect(
     useCallback(() => {
-      // 🟢 CREATE MODE — always clear form and exit
-      if (!editing) {
-        clearForm();
+      if (!editing || !id) {
+        // reset when switching from edit → create
+        setInitialData(null);
+        setTitle("");
+        setDate("");
+        setStartTime("");
+        setLocation("");
+        setIntro("");
+        setImages([]);
         return;
       }
 
-      // 🟡 EDIT MODE — load data
       const loadData = async () => {
-        const activity = await fetchActivityById(id!);
+        const activity = await fetchActivityById(id);
         if (!activity) return;
 
         setInitialData(activity);
-
         setTitle(activity.title);
         setDate(activity.date);
         setStartTime(activity.start_time);
@@ -80,10 +125,9 @@ export default function CreateOrEditActivity() {
     }, [editing, id])
   );
 
-  /* RESET FORM BACK TO ORIGINAL (used by Cancel) */
+  /* RESET FORM */
   const resetFormToInitial = () => {
     if (!initialData) return;
-
     setTitle(initialData.title);
     setDate(initialData.date);
     setStartTime(initialData.start_time);
@@ -92,9 +136,8 @@ export default function CreateOrEditActivity() {
     setImages(initialData.image_urls ?? []);
   };
 
-  /* CANCEL */
   const handleCancel = () => {
-    if (editing) resetFormToInitial();
+    resetFormToInitial();
     router.back();
   };
 
@@ -104,7 +147,6 @@ export default function CreateOrEditActivity() {
       mediaTypes: ["images"],
       quality: 0.9,
     });
-
     if (result.canceled) return;
 
     setUploading(true);
@@ -128,6 +170,9 @@ export default function CreateOrEditActivity() {
 
     try {
       if (editing) {
+        /* -------------------------------------------------------
+           UPDATE ACTIVITY
+        --------------------------------------------------------- */
         await updateActivity(id!, {
           title,
           date,
@@ -137,9 +182,36 @@ export default function CreateOrEditActivity() {
           image_urls: images,
         });
 
-        dispatch(triggerRefresh()); // 🔥 refresh ALL pages
+        dispatch(triggerRefresh());
+
+        /* -------------------------------------------------------
+           PUSH NOTIFICATION LOGIC
+        --------------------------------------------------------- */
+        // Notify organizer
+        const organizerToken = await getOrganizerToken(initialData.organizer_id);
+        if (organizerToken) {
+          await sendPush(
+            organizerToken,
+            "Activity Updated",
+            `You successfully updated "${title}".`
+          );
+        }
+
+        // Notify all registered students
+        const studentTokens = await getRegisteredStudentTokens(id!);
+        for (const token of studentTokens) {
+          await sendPush(
+            token,
+            "Activity Updated",
+            `The activity "${title}" was updated. Please check the details.`
+          );
+        }
+
         Alert.alert("Updated!", "Activity updated successfully.");
       } else {
+        /* -------------------------------------------------------
+           CREATE NEW ACTIVITY
+        --------------------------------------------------------- */
         await createActivity({
           title,
           date,
@@ -147,6 +219,7 @@ export default function CreateOrEditActivity() {
           location,
           introduction: intro,
           image_urls: images,
+          organizer_id: user.id,
         });
 
         dispatch(triggerRefresh());
@@ -173,12 +246,12 @@ export default function CreateOrEditActivity() {
       <TextInput
         style={[styles.input, { height: 100 }]}
         placeholder="Description"
-        multiline
         value={intro}
         onChangeText={setIntro}
+        multiline
       />
 
-      <Button title={uploading ? "Uploading..." : "Add Image"} onPress={onPickImage} />
+      <Button title={uploading ? "Uploading..." : "Add Image"} onPress={onPickImage} disabled={uploading} />
 
       {images.map((url) => (
         <Image key={url} source={{ uri: url }} style={styles.image} />
