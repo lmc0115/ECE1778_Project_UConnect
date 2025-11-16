@@ -184,8 +184,8 @@ export default function LoginModal({ visible, onClose }: Props) {
   )}
 
           <AppButton
-            title="Login"
-            onPress={onLogin}
+            title={registerMode ? "Register" : "Login"}
+            onPress={registerMode ? onRegister : onLogin}
             disabled={false}
           />
 
@@ -193,8 +193,9 @@ export default function LoginModal({ visible, onClose }: Props) {
           <View style={styles.linkRow}>
             <Pressable onPress={onPressRegisterLink}>
               <Text style={styles.linkText}>
-                {registerMode ? "Confirm register" : "Register"}
+                {registerMode ? "Login" : "Register"}
               </Text>
+
             </Pressable>
             <View style={styles.linkDivider} />
             <Pressable onPress={onResetPassword}>
