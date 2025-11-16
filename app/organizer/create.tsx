@@ -87,11 +87,18 @@ async function scheduleLocalReminder(
     if (isNaN(start.getTime())) return;
 
     const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
-    if (reminderTime.getTime() <= Date.now()) return;
+
+    const diffMs = reminderTime.getTime() - Date.now();
+    if (diffMs <= 0) return;
+
+    const seconds = Math.round(diffMs / 1000);
 
     await Notifications.scheduleNotificationAsync({
         content: { title, body },
-        trigger: { type: "date", date: reminderTime },
+        trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds,
+        },
     });
 }
 
@@ -215,7 +222,7 @@ export default function CreateOrEditActivity() {
           await sendPush(
             organizerToken,
             "Activity Updated",
-            `You successfully modified "${title}".`
+            `You successfully modified activity: ${title}`
           );
         }
 
@@ -225,7 +232,7 @@ export default function CreateOrEditActivity() {
           await sendPush(
             token,
             "Activity Updated",
-            `The activity "${title}" was modified. Please check the details.`
+            `${title} has been updated. Please check the details.`
           );
         }
 

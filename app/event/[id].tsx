@@ -73,11 +73,18 @@ async function scheduleLocalReminder(
     if (isNaN(start.getTime())) return;
 
     const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
-    if (reminderTime.getTime() <= Date.now()) return;
+
+    const diffMs = reminderTime.getTime() - Date.now();
+    if (diffMs <= 0) return;
+
+    const seconds = Math.round(diffMs / 1000);
 
     await Notifications.scheduleNotificationAsync({
         content: { title, body },
-        trigger: { type: "date", date: reminderTime },
+        trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds,
+        },
     });
 }
 
@@ -176,7 +183,7 @@ export default function EventDetails() {
           await sendPush(
             organizerToken,
             "New registration",
-            `A new student registered for "${event.title}". Total registered: ${count}.`
+            `A new student registered for ${event.title}. Total registered: ${count}.`
           );
         }
       }
