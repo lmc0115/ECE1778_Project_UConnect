@@ -94,7 +94,7 @@ export default function LoginModal({ visible, onClose }: Props) {
       setRegisterMode(true);
     } else {
       // Already in register mode: perform actual registration
-      onRegister();
+      setRegisterMode(false);
     }
   };
 
