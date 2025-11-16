@@ -43,6 +43,9 @@ export default function EventDetails() {
   const authed = useAppSelector(selectIsAuthed);
   const role = useAppSelector(selectRole);
   const user = useAppSelector(selectUser);
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
+
   const router = useRouter();
 
   const [registered, setRegistered] = useState(false);
@@ -173,9 +176,24 @@ export default function EventDetails() {
   ------------------------------------------------------------- */
   if (loading || !event) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-        <Text style={{ marginTop: 10 }}>Loading event...</Text>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? "#60A5FA" : "#2563eb"}
+        />
+        <Text
+          style={{
+            marginTop: 10,
+            color: isDark ? "#E5E7EB" : "#111827",
+          }}
+        >
+          Loading event...
+        </Text>
       </View>
     );
   }
@@ -183,26 +201,53 @@ export default function EventDetails() {
   return (
     <>
       <ScrollView
-        style={styles.container}
+        style={[
+          styles.container,
+          { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+        ]}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        <Text style={styles.title}>{event.title}</Text>
+        <Text
+          style={[
+            styles.title,
+            { color: isDark ? "#E5E7EB" : "#111827" },
+          ]}
+        >
+          {event.title}
+        </Text>
 
         {event.image_urls?.length > 0 &&
           event.image_urls.map((url: string, index: number) => (
             <Pressable key={index} onPress={() => setImageModalUrl(url)}>
-              <Image source={{ uri: url }} style={styles.cover} />
+              <Image
+                source={{ uri: url }}
+                style={[
+                  styles.cover,
+                  { backgroundColor: isDark ? "#111827" : "#eeeeee" },
+                ]}
+              />
             </Pressable>
           ))}
 
-        <Text style={styles.meta}>
+        <Text
+          style={[
+            styles.meta,
+            { color: isDark ? "#9CA3AF" : "#666666" },
+          ]}
+        >
           {event.date}
           {event.start_time ? ` • ${formatTime(event.start_time)}` : ""}
           {event.location ? ` • ${event.location}` : ""}
         </Text>
 
-
-        <Text style={styles.desc}>{event.introduction}</Text>
+        <Text
+          style={[
+            styles.desc,
+            { color: isDark ? "#D1D5DB" : "#111827" },
+          ]}
+        >
+          {event.introduction}
+        </Text>
 
         {/* STUDENT BUTTONS */}
         {role !== "organizer" && (
@@ -270,9 +315,8 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 220,
     borderRadius: 12,
-    backgroundColor: "#eee",
     marginBottom: 12,
   },
-  meta: { color: "#666", marginTop: 8 },
+  meta: { marginTop: 8 },
   desc: { marginTop: 12, lineHeight: 20 },
 });

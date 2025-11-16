@@ -1,9 +1,13 @@
+// app/_layout.tsx
 import { Tabs } from "expo-router";
 import { Provider } from "react-redux";
 import { store } from "../store/store";
 import { useEffect } from "react";
-import * as Linking from "expo-linking";
-import { supabase } from "../lib/supabase";
+import { View } from "react-native";
+
+import { setTheme } from "../store/slices/themeSlice";
+import { loadTheme } from "../lib/themeStorage";
+import { useAppSelector } from "../store/hooks";
 
 // Deep linking config
 const linking = {
@@ -18,44 +22,54 @@ const linking = {
   },
 };
 
-export default function RootLayout() {
-  useEffect(() => {
-  }, []);
+function TabsWithTheme() {
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
 
   return (
-    <Provider store={store}>
-      <Tabs screenOptions={{ headerShown: false }} linking={linking}>
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: isDark ? "#020617" : "#FFFFFF",
+      }}
+    >
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: {
+            backgroundColor: isDark ? "#020617" : "#FFFFFF",
+            borderTopColor: isDark ? "#1F2937" : "#E5E7EB",
+          },
+          tabBarActiveTintColor: isDark ? "#60A5FA" : "#2563eb",
+          tabBarInactiveTintColor: isDark ? "#9CA3AF" : "#6B7280",
+          sceneContainerStyle: {
+            backgroundColor: isDark ? "#020617" : "#FFFFFF",
+          },
+        }}
+        linking={linking}
+      >
         <Tabs.Screen name="index" options={{ title: "Activity" }} />
         <Tabs.Screen name="mylist" options={{ title: "My List" }} />
         <Tabs.Screen name="account" options={{ title: "Account" }} />
 
-        {/* The following pages can still be accessed via router.push(...) , but they will not appear on the bottom. */}
-
-        {/* Reset password */}
         <Tabs.Screen
           name="reset-password"
           options={{
-            href: null, 
+            href: null,
           }}
         />
-
-        {/* Calendar */}
         <Tabs.Screen
           name="calendar"
           options={{
             href: null,
           }}
         />
-
-        {/* Organizer */}
         <Tabs.Screen
           name="organizer/create"
           options={{
             href: null,
           }}
         />
-
-        {/* Event details */}
         <Tabs.Screen
           name="event/[id]"
           options={{
@@ -63,6 +77,23 @@ export default function RootLayout() {
           }}
         />
       </Tabs>
+    </View>
+  );
+}
+
+export default function RootLayout() {
+  useEffect(() => {
+    (async () => {
+      const saved = await loadTheme();
+      if (saved === "light" || saved === "dark") {
+        store.dispatch(setTheme(saved));
+      }
+    })();
+  }, []);
+
+  return (
+    <Provider store={store}>
+      <TabsWithTheme />
     </Provider>
   );
 }

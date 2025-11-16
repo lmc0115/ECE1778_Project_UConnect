@@ -9,7 +9,7 @@ import {
   SafeAreaView,
 } from "react-native";
 import { useState } from "react";
-import { useAppDispatch } from "../store/hooks";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { loginUser, signupUser } from "../store/slices/userSlice";
 import { supabase } from "../lib/supabase";
 import AppButton from "./AppButton";
@@ -26,6 +26,10 @@ export default function LoginModal({ visible, onClose }: Props) {
   const [pwd, setPwd] = useState("");
   const [role, setRole] = useState<"student" | "organizer">("student");
   const dispatch = useAppDispatch();
+
+  // Read theme
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
 
   const primaryColor = role === "student" ? STUDENT_COLOR : ORGANIZER_COLOR;
 
@@ -123,10 +127,35 @@ export default function LoginModal({ visible, onClose }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade">
       <SafeAreaView style={styles.safeArea}>
-        <Pressable style={styles.backdrop} onPress={onClose} />
+        <Pressable
+          style={[
+            styles.backdrop,
+            {
+              backgroundColor: isDark
+                ? "rgba(15,23,42,0.85)"
+                : "rgba(0,0,0,0.35)",
+            },
+          ]}
+          onPress={onClose}
+        />
 
-        <View style={styles.card}>
-          <Text style={styles.title}>Login / Register</Text>
+        <View
+          style={[
+            styles.card,
+            {
+              backgroundColor: isDark ? "#020617" : "#ffffff",
+              borderColor: isDark ? "#1f2937" : "#e5e7eb",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.title,
+              { color: isDark ? "#E5E7EB" : "#111827" },
+            ]}
+          >
+            Login / Register
+          </Text>
 
           {/* Role select area */}
           <View style={styles.roleRow}>
@@ -134,12 +163,17 @@ export default function LoginModal({ visible, onClose }: Props) {
               onPress={() => setRole("student")}
               style={[
                 styles.roleChip,
+                {
+                  backgroundColor: isDark ? "#020617" : "#ffffff",
+                  borderColor: isDark ? "#4B5563" : "#d0d0d0",
+                },
                 role === "student" && styles.roleChipStudentActive,
               ]}
             >
               <Text
                 style={[
                   styles.roleChipText,
+                  { color: isDark ? "#E5E7EB" : "#555" },
                   role === "student" && styles.roleChipTextActive,
                 ]}
               >
@@ -150,12 +184,17 @@ export default function LoginModal({ visible, onClose }: Props) {
               onPress={() => setRole("organizer")}
               style={[
                 styles.roleChip,
+                {
+                  backgroundColor: isDark ? "#020617" : "#ffffff",
+                  borderColor: isDark ? "#4B5563" : "#d0d0d0",
+                },
                 role === "organizer" && styles.roleChipOrganizerActive,
               ]}
             >
               <Text
                 style={[
                   styles.roleChipText,
+                  { color: isDark ? "#E5E7EB" : "#555" },
                   role === "organizer" && styles.roleChipTextActive,
                 ]}
               >
@@ -163,27 +202,62 @@ export default function LoginModal({ visible, onClose }: Props) {
               </Text>
             </Pressable>
           </View>
-          <Text style={styles.roleHint}>
+          <Text
+            style={[
+              styles.roleHint,
+              { color: isDark ? "#9CA3AF" : "#6b7280" },
+            ]}
+          >
             Role will be locked for this email after registration.
           </Text>
 
           {/* input area */}
-          <Text style={styles.label}>Email</Text>
+          <Text
+            style={[
+              styles.label,
+              { color: isDark ? "#E5E7EB" : "#333" },
+            ]}
+          >
+            Email
+          </Text>
           <TextInput
             placeholder="Email"
             value={email}
             onChangeText={setEmail}
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: isDark ? "#020617" : "#f7f7f7",
+                borderColor: isDark ? "#4B5563" : "#e1e1e1",
+                color: isDark ? "#E5E7EB" : "#111827",
+              },
+            ]}
+            placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
             autoCapitalize="none"
             keyboardType="email-address"
           />
 
-          <Text style={styles.label}>Password</Text>
+          <Text
+            style={[
+              styles.label,
+              { color: isDark ? "#E5E7EB" : "#333" },
+            ]}
+          >
+            Password
+          </Text>
           <TextInput
             placeholder="Password"
             value={pwd}
             onChangeText={setPwd}
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: isDark ? "#020617" : "#f7f7f7",
+                borderColor: isDark ? "#4B5563" : "#e1e1e1",
+                color: isDark ? "#E5E7EB" : "#111827",
+              },
+            ]}
+            placeholderTextColor={isDark ? "#6B7280" : "#9CA3AF"}
             secureTextEntry
           />
 
@@ -198,7 +272,14 @@ export default function LoginModal({ visible, onClose }: Props) {
           {/* Reset password */}
           <View style={styles.linkRow}>
             <Pressable onPress={onResetPassword}>
-              <Text style={styles.linkText}>Reset password</Text>
+              <Text
+                style={[
+                  styles.linkText,
+                  { color: isDark ? "#60A5FA" : "#2563eb" },
+                ]}
+              >
+                Reset password
+              </Text>
             </Pressable>
           </View>
 
@@ -222,7 +303,6 @@ const styles = StyleSheet.create({
   backdrop: {
     position: "absolute",
     inset: 0,
-    backgroundColor: "rgba(0,0,0,0.35)",
   },
   card: {
     marginHorizontal: 24,
@@ -234,6 +314,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
+    borderWidth: 1,
   },
   title: {
     fontSize: 20,
@@ -242,12 +323,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   input: {
-    backgroundColor: "#f7f7f7",
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "#e1e1e1",
     marginBottom: 10,
     fontSize: 14,
   },
@@ -261,10 +340,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: "#d0d0d0",
     alignItems: "center",
     marginHorizontal: 4,
-    backgroundColor: "#ffffff",
   },
 
   // Different roles activate their respective styles.
@@ -278,7 +355,6 @@ const styles = StyleSheet.create({
   },
   roleChipText: {
     fontSize: 13,
-    color: "#555",
     fontWeight: "500",
   },
   roleChipTextActive: {
@@ -286,7 +362,6 @@ const styles = StyleSheet.create({
   },
   roleHint: {
     fontSize: 11,
-    color: "#6b7280",
     marginBottom: 12,
     textAlign: "center",
   },
@@ -299,14 +374,12 @@ const styles = StyleSheet.create({
   },
   linkText: {
     fontSize: 13,
-    color: "#2563eb",
     textDecorationLine: "underline",
     paddingHorizontal: 4,
   },
   label: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#333",
     marginBottom: 4,
   },
 });

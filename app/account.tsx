@@ -1,3 +1,4 @@
+// app/account.tsx
 import { useState } from "react";
 import {
   View,
@@ -27,11 +28,16 @@ import LoginModal from "../components/LoginModal";
 import { uploadProfilePhoto, updateProfile } from "../lib/profile";
 import { supabase } from "lib/supabase";
 
+import { toggleTheme } from "../store/slices/themeSlice";
+
 export default function Account() {
   const user = useAppSelector(selectUser);
   const role = useAppSelector(selectRole);
   const usernameInStore = useAppSelector(selectUsername);
   const avatarUrl = useAppSelector(selectAvatarUrl);
+
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
 
   const dispatch = useAppDispatch();
 
@@ -42,6 +48,13 @@ export default function Account() {
   const [usernameInput, setUsernameInput] = useState(usernameInStore);
 
   const onLogout = () => dispatch(logoutUser());
+
+  const bgColor = isDark ? "#020617" : "#FFFFFF";
+  const mainTextColor = isDark ? "#E5E7EB" : "#111827";
+  const secondaryTextColor = isDark ? "#9CA3AF" : "#6B7280";
+  const cardBg = isDark ? "#020617" : "#FFFFFF";
+  const cardBorderColor = isDark ? "#374151" : "#E5E7EB";
+  const linkColor = isDark ? "#60A5FA" : "#2563eb";
 
   /* --------------------------------------------------------------
      Pick + Upload Profile Photo
@@ -114,17 +127,37 @@ export default function Account() {
     }
   };
 
+  const handleToggleTheme = () => {
+    dispatch(toggleTheme());
+  };
+
   /* --------------------------------------------------------------
      UI
   -------------------------------------------------------------- */
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Account</Text>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <Text style={[styles.title, { color: mainTextColor }]}>Account</Text>
 
       {!user && (
         <>
-          <Pressable style={styles.button} onPress={() => setShowLogin(true)}>
+          <Pressable
+            style={[styles.button, styles.loginButton]}
+            onPress={() => setShowLogin(true)}
+          >
             <Text style={styles.buttonText}>Login / Register</Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.button,
+              styles.themeButton,
+              { backgroundColor: isDark ? "#4B5563" : "#111827" },
+            ]}
+            onPress={handleToggleTheme}
+          >
+            <Text style={styles.buttonText}>
+              {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            </Text>
           </Pressable>
 
           <LoginModal visible={showLogin} onClose={() => setShowLogin(false)} />
@@ -149,28 +182,54 @@ export default function Account() {
                 />
               )}
             </Pressable>
-            <Text style={styles.photoHint}>Tap to change photo</Text>
+            <Text style={[styles.photoHint, { color: linkColor }]}>
+              Tap to change photo
+            </Text>
           </View>
 
           {/* Info card */}
-          <View style={styles.infoCard}>
+          <View
+            style={[
+              styles.infoCard,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorderColor,
+                borderWidth: 1,
+                shadowOpacity: isDark ? 0 : 0.05,
+              },
+            ]}
+          >
             {/* Username + Edit */}
             <View style={styles.row}>
-              <Text style={styles.label}>Username</Text>
+              <Text style={[styles.label, { color: mainTextColor }]}>
+                Username
+              </Text>
               <Pressable onPress={() => setEditVisible(true)}>
-                <Text style={styles.editText}>Edit</Text>
+                <Text style={[styles.editText, { color: linkColor }]}>
+                  Edit
+                </Text>
               </Pressable>
             </View>
-            <Text style={styles.currentValue}>{usernameInStore}</Text>
+            <Text style={[styles.currentValue, { color: mainTextColor }]}>
+              {usernameInStore}
+            </Text>
 
             {/* Email */}
-            <Text style={styles.infoLabel}>Email</Text>
-            <Text style={styles.infoValue}>{user.email}</Text>
+            <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>
+              Email
+            </Text>
+            <Text style={[styles.infoValue, { color: mainTextColor }]}>
+              {user.email}
+            </Text>
 
             {/* Role + badge */}
-            <Text style={styles.infoLabel}>Role</Text>
+            <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>
+              Role
+            </Text>
             <View style={styles.roleRow}>
-              <Text style={styles.infoValue}>{role}</Text>
+              <Text style={[styles.infoValue, { color: mainTextColor }]}>
+                {role}
+              </Text>
               <View
                 style={[
                   styles.roleChip,
@@ -184,6 +243,23 @@ export default function Account() {
                 </Text>
               </View>
             </View>
+
+            <View style={[styles.roleRow, { marginTop: 12 }]}>
+              <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>
+                Theme
+              </Text>
+              <Pressable
+                style={[
+                  styles.themeBadge,
+                  { backgroundColor: isDark ? "#4B5563" : "#111827" },
+                ]}
+                onPress={handleToggleTheme}
+              >
+                <Text style={styles.themeBadgeText}>
+                  {isDark ? "Dark" : "Light"}
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           {/* Logout */}
@@ -195,7 +271,9 @@ export default function Account() {
           </Pressable>
 
           <Pressable onPress={handleResetPassword}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <Text style={[styles.forgotText, { color: linkColor }]}>
+              Forgot Password?
+            </Text>
           </Pressable>
         </>
       )}
@@ -205,18 +283,33 @@ export default function Account() {
       ----------------------------------------------------------- */}
       <Modal visible={editVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Edit Username</Text>
+          <View
+            style={[
+              styles.modalBox,
+              { backgroundColor: bgColor, borderColor: cardBorderColor },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: mainTextColor }]}>
+              Edit Username
+            </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: bgColor,
+                  color: mainTextColor,
+                  borderColor: cardBorderColor,
+                },
+              ]}
               value={usernameInput}
               onChangeText={setUsernameInput}
               placeholder="Enter new username"
+              placeholderTextColor={secondaryTextColor}
             />
 
             <Pressable
-              style={[styles.button, { backgroundColor: "#2563eb" }]}
+              style={[styles.button, styles.loginButton]}
               onPress={saveUsername}
               disabled={saving}
             >
@@ -226,7 +319,10 @@ export default function Account() {
             </Pressable>
 
             <Pressable
-              style={[styles.button, { backgroundColor: "#777" }]}
+              style={[
+                styles.button,
+                { backgroundColor: isDark ? "#4B5563" : "#777" },
+              ]}
               onPress={() => setEditVisible(false)}
             >
               <Text style={styles.buttonText}>Cancel</Text>
@@ -258,7 +354,6 @@ const styles = StyleSheet.create({
   },
   photoHint: {
     textAlign: "center",
-    color: "#2563eb",
   },
 
   infoCard: {
@@ -284,14 +379,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   editText: {
-    color: "#2563eb",
     fontSize: 14,
     fontWeight: "500",
   },
 
   currentValue: {
     fontSize: 16,
-    color: "#333",
     marginBottom: 12,
     marginTop: 4,
   },
@@ -299,11 +392,9 @@ const styles = StyleSheet.create({
   infoLabel: {
     marginTop: 4,
     fontSize: 13,
-    color: "#6b7280",
   },
   infoValue: {
     fontSize: 15,
-    color: "#111827",
     marginBottom: 4,
   },
 
@@ -332,21 +423,25 @@ const styles = StyleSheet.create({
 
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     padding: 10,
     marginBottom: 16,
   },
 
   button: {
-    backgroundColor: "#2563eb",
     paddingVertical: 12,
     alignItems: "center",
     borderRadius: 999,
     marginTop: 16,
   },
+  loginButton: {
+    backgroundColor: "#2563eb",
+  },
   logoutButton: {
     backgroundColor: "#DC2626",
+  },
+  themeButton: {
+    marginTop: 12,
   },
   buttonText: {
     color: "white",
@@ -354,8 +449,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
+  themeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  themeBadgeText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+
   forgotText: {
-    color: "#2563eb",
     marginTop: 10,
     fontSize: 14,
   },
@@ -368,7 +473,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalBox: {
-    backgroundColor: "white",
     borderRadius: 12,
     padding: 20,
     elevation: 10,
