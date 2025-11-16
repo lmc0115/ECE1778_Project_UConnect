@@ -212,6 +212,13 @@ export default function CreateOrEditActivity() {
 
         dispatch(triggerRefresh());
 
+        await scheduleLocalReminder(
+          date,
+          startTime,
+          "Your activity is starting soon",
+          title
+        );
+
         /* -------------------------------------------------------
            PUSH NOTIFICATION LOGIC
         --------------------------------------------------------- */
