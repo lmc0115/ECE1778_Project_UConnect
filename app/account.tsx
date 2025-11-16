@@ -26,12 +26,16 @@ import {
 import LoginModal from "../components/LoginModal";
 import { uploadProfilePhoto, updateProfile } from "../lib/profile";
 import { supabase } from "lib/supabase";
+import { toggleTheme } from "../store/slices/themeSlice";
 
 export default function Account() {
   const user = useAppSelector(selectUser);
   const role = useAppSelector(selectRole);
   const usernameInStore = useAppSelector(selectUsername);
   const avatarUrl = useAppSelector(selectAvatarUrl);
+
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
 
   const dispatch = useAppDispatch();
 
@@ -58,9 +62,9 @@ export default function Account() {
       setSaving(true);
 
       const uri = result.assets[0].uri;
-      const url = await uploadProfilePhoto(uri, user.id);
+      const url = await uploadProfilePhoto(uri, user!.id);
 
-      await updateProfile(user.id, { avatar_url: url });
+      await updateProfile(user!.id, { avatar_url: url });
       dispatch(updateAvatarUrl(url));
 
       Alert.alert("Success", "Profile photo updated.");
@@ -83,7 +87,7 @@ export default function Account() {
       setEditVisible(false);
       Alert.alert("Updated", "Username saved.");
     } catch (err: any) {
-      Alert.alert("Error", err);
+      Alert.alert("Error", String(err));
     } finally {
       setSaving(false);
     }
@@ -115,15 +119,40 @@ export default function Account() {
   };
 
   /* --------------------------------------------------------------
+     Theme colors
+  -------------------------------------------------------------- */
+  const bgColor = isDark ? "#020617" : "#F9FAFB";
+  const cardBg = isDark ? "#0B1120" : "#FFFFFF";
+  const mainText = isDark ? "#F9FAFB" : "#111827";
+  const secondaryText = isDark ? "#9CA3AF" : "#6B7280";
+  const hintBlue = "#2563eb";
+  const borderColor = isDark ? "#1F2937" : "#E5E7EB";
+
+  const onToggleTheme = () => {
+    dispatch(toggleTheme());
+  };
+
+  const themeDisplay = isDark ? "Dark" : "Light";
+  const themeButtonLabel = isDark
+    ? "Click to switch to Light"
+    : "Click to switch to Dark";
+
+  /* --------------------------------------------------------------
      UI
   -------------------------------------------------------------- */
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Account</Text>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <Text style={[styles.title, { color: mainText }]}>Account</Text>
 
       {!user && (
         <>
-          <Pressable style={styles.button} onPress={() => setShowLogin(true)}>
+          <Pressable
+            style={[
+              styles.button,
+              { backgroundColor: hintBlue, marginTop: 8 },
+            ]}
+            onPress={() => setShowLogin(true)}
+          >
             <Text style={styles.buttonText}>Login / Register</Text>
           </Pressable>
 
@@ -149,40 +178,73 @@ export default function Account() {
                 />
               )}
             </Pressable>
-            <Text style={styles.photoHint}>Tap to change photo</Text>
+            <Text style={[styles.photoHint, { color: hintBlue }]}>
+              Tap to change photo
+            </Text>
           </View>
 
           {/* Info card */}
-          <View style={styles.infoCard}>
+          <View
+            style={[
+              styles.infoCard,
+              {
+                backgroundColor: cardBg,
+                borderColor,
+                borderWidth: isDark ? 1 : 0,
+                shadowOpacity: isDark ? 0 : 0.05,
+              },
+            ]}
+          >
             {/* Username + Edit */}
             <View style={styles.row}>
-              <Text style={styles.label}>Username</Text>
+              <Text style={[styles.label, { color: mainText }]}>Username</Text>
               <Pressable onPress={() => setEditVisible(true)}>
-                <Text style={styles.editText}>Edit</Text>
+                <Text style={[styles.editText, { color: hintBlue }]}>Edit</Text>
               </Pressable>
             </View>
-            <Text style={styles.currentValue}>{usernameInStore}</Text>
+            <Text style={[styles.currentValue, { color: mainText }]}>
+              {usernameInStore}
+            </Text>
 
             {/* Email */}
-            <Text style={styles.infoLabel}>Email</Text>
-            <Text style={styles.infoValue}>{user.email}</Text>
+            <Text style={[styles.infoLabel, { color: secondaryText }]}>
+              Email
+            </Text>
+            <Text style={[styles.infoValue, { color: mainText }]}>
+              {user.email}
+            </Text>
 
-            {/* Role + badge */}
-            <Text style={styles.infoLabel}>Role</Text>
-            <View style={styles.roleRow}>
-              <Text style={styles.infoValue}>{role}</Text>
-              <View
+            {/* Role */}
+            <Text style={[styles.infoLabel, { color: secondaryText }]}>
+              Role
+            </Text>
+            <Text style={[styles.infoValue, { color: mainText }]}>{role}</Text>
+
+            {/* Theme */}
+            <Text
+              style={[
+                styles.infoLabel,
+                { color: secondaryText, marginTop: 12 },
+              ]}
+            >
+              Theme
+            </Text>
+            <View style={styles.themeRow}>
+              <Text style={[styles.infoValue, { color: mainText }]}>
+                {themeDisplay}
+              </Text>
+
+              <Pressable
                 style={[
-                  styles.roleChip,
-                  role === "student"
-                    ? styles.roleChipStudent
-                    : styles.roleChipOrganizer,
+                  styles.themeButton,
+                  {
+                    backgroundColor: isDark ? "#4B5563" : "#111827",
+                  },
                 ]}
+                onPress={onToggleTheme}
               >
-                <Text style={styles.roleChipText}>
-                  {role === "student" ? "Student" : "Organizer"}
-                </Text>
-              </View>
+                <Text style={styles.themeButtonText}>{themeButtonLabel}</Text>
+              </Pressable>
             </View>
           </View>
 
@@ -195,7 +257,14 @@ export default function Account() {
           </Pressable>
 
           <Pressable onPress={handleResetPassword}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
+            <Text
+              style={[
+                styles.forgotText,
+                { color: hintBlue, textAlign: "center" },
+              ]}
+            >
+              Forgot Password?
+            </Text>
           </Pressable>
         </>
       )}
@@ -205,18 +274,36 @@ export default function Account() {
       ----------------------------------------------------------- */}
       <Modal visible={editVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.modalTitle}>Edit Username</Text>
+          <View
+            style={[
+              styles.modalBox,
+              { backgroundColor: cardBg, borderColor, borderWidth: 1 },
+            ]}
+          >
+            <Text style={[styles.modalTitle, { color: mainText }]}>
+              Edit Username
+            </Text>
 
             <TextInput
-              style={styles.input}
+              style={[
+                styles.input,
+                {
+                  backgroundColor: isDark ? "#020617" : "#FFFFFF",
+                  color: mainText,
+                  borderColor,
+                },
+              ]}
               value={usernameInput}
               onChangeText={setUsernameInput}
               placeholder="Enter new username"
+              placeholderTextColor={secondaryText}
             />
 
             <Pressable
-              style={[styles.button, { backgroundColor: "#2563eb" }]}
+              style={[
+                styles.button,
+                { backgroundColor: hintBlue, marginTop: 0 },
+              ]}
               onPress={saveUsername}
               disabled={saving}
             >
@@ -226,7 +313,10 @@ export default function Account() {
             </Pressable>
 
             <Pressable
-              style={[styles.button, { backgroundColor: "#777" }]}
+              style={[
+                styles.button,
+                { backgroundColor: "#6B7280", marginTop: 12 },
+              ]}
               onPress={() => setEditVisible(false)}
             >
               <Text style={styles.buttonText}>Cancel</Text>
@@ -258,16 +348,13 @@ const styles = StyleSheet.create({
   },
   photoHint: {
     textAlign: "center",
-    color: "#2563eb",
   },
 
   infoCard: {
     marginTop: 16,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#ffffff",
     shadowColor: "#000",
-    shadowOpacity: 0.05,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
@@ -284,14 +371,12 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   editText: {
-    color: "#2563eb",
     fontSize: 14,
     fontWeight: "500",
   },
 
   currentValue: {
     fontSize: 16,
-    color: "#333",
     marginBottom: 12,
     marginTop: 4,
   },
@@ -299,47 +384,38 @@ const styles = StyleSheet.create({
   infoLabel: {
     marginTop: 4,
     fontSize: 13,
-    color: "#6b7280",
   },
   infoValue: {
     fontSize: 15,
-    color: "#111827",
     marginBottom: 4,
   },
 
-  roleRow: {
+  themeRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 2,
+    marginTop: 4,
+    gap: 8,
   },
-  roleChip: {
+  themeButton: {
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    paddingVertical: 4,
     borderRadius: 999,
   },
-  roleChipStudent: {
-    backgroundColor: "#16a34a",
-  },
-  roleChipOrganizer: {
-    backgroundColor: "#2563eb",
-  },
-  roleChipText: {
-    color: "#ffffff",
+  themeButtonText: {
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
   },
 
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
     padding: 10,
     marginBottom: 16,
   },
 
   button: {
-    backgroundColor: "#2563eb",
     paddingVertical: 12,
     alignItems: "center",
     borderRadius: 999,
@@ -355,7 +431,6 @@ const styles = StyleSheet.create({
   },
 
   forgotText: {
-    color: "#2563eb",
     marginTop: 10,
     fontSize: 14,
   },
@@ -368,7 +443,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   modalBox: {
-    backgroundColor: "white",
     borderRadius: 12,
     padding: 20,
     elevation: 10,

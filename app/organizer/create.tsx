@@ -94,10 +94,13 @@ export default function CreateOrEditActivity() {
   const dispatch = useAppDispatch();
   const user = useAppSelector((state) => state.user.user);
 
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
+
   const [initialData, setInitialData] = useState<any>(null);
 
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");       // YYYY-MM-DD
+  const [date, setDate] = useState(""); // YYYY-MM-DD
   const [startTime, setStartTime] = useState(""); // HH:MM
   const [location, setLocation] = useState("");
   const [intro, setIntro] = useState("");
@@ -285,25 +288,43 @@ export default function CreateOrEditActivity() {
     }
   };
 
+  // theme-based colors
+  const mainBg = isDark ? "#020617" : "#FFFFFF";
+  const mainText = isDark ? "#E5E7EB" : "#111827";
+  const borderColor = isDark ? "#4B5563" : "#D1D5DB";
+  const inputBg = isDark ? "#020617" : "#FFFFFF";
+  const placeholderColor = isDark ? "#6B7280" : "#9CA3AF";
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: mainBg }}
+      contentContainerStyle={styles.container}
+    >
+      <Text style={[styles.heading, { color: mainText }]}>
         {editing ? "Edit Activity" : "Create Activity"}
       </Text>
 
       {/* Title */}
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          { backgroundColor: inputBg, borderColor, color: mainText },
+        ]}
         placeholder="Title"
+        placeholderTextColor={placeholderColor}
         value={title}
         onChangeText={setTitle}
       />
 
       {/* Date (picker) */}
-      <Pressable onPress={openDatePicker} style={styles.inputPressable}>
+      <Pressable
+        onPress={openDatePicker}
+        style={[styles.inputPressable, { borderColor, backgroundColor: inputBg }]}
+      >
         <TextInput
-          style={styles.inputInner}
+          style={[styles.inputInner, { color: mainText }]}
           placeholder="Date (YYYY-MM-DD)"
+          placeholderTextColor={placeholderColor}
           value={date}
           editable={false}
           pointerEvents="none"
@@ -311,10 +332,14 @@ export default function CreateOrEditActivity() {
       </Pressable>
 
       {/* Time (picker) */}
-      <Pressable onPress={openTimePicker} style={styles.inputPressable}>
+      <Pressable
+        onPress={openTimePicker}
+        style={[styles.inputPressable, { borderColor, backgroundColor: inputBg }]}
+      >
         <TextInput
-          style={styles.inputInner}
+          style={[styles.inputInner, { color: mainText }]}
           placeholder="Start Time (HH:MM)"
+          placeholderTextColor={placeholderColor}
           value={startTime}
           editable={false}
           pointerEvents="none"
@@ -323,16 +348,29 @@ export default function CreateOrEditActivity() {
 
       {/* Location */}
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          { backgroundColor: inputBg, borderColor, color: mainText },
+        ]}
         placeholder="Location"
+        placeholderTextColor={placeholderColor}
         value={location}
         onChangeText={setLocation}
       />
 
       {/* Description */}
       <TextInput
-        style={[styles.input, { height: 100 }]}
+        style={[
+          styles.input,
+          {
+            height: 100,
+            backgroundColor: inputBg,
+            borderColor,
+            color: mainText,
+          },
+        ]}
         placeholder="Description"
+        placeholderTextColor={placeholderColor}
         value={intro}
         onChangeText={setIntro}
         multiline
@@ -371,19 +409,26 @@ export default function CreateOrEditActivity() {
         <AppButton title="Cancel" onPress={handleCancel} color="#9CA3AF" />
       </View>
 
-      {/* iOS: Own mask + spinner Android: System pop-up window */}
+      {/* iOS pickers with themed box */}
       {Platform.OS === "ios" && showDatePicker && (
         <Modal transparent animationType="fade">
           <Pressable
             style={styles.modalOverlay}
             onPress={() => setShowDatePicker(false)}
           >
-            <View style={styles.pickerBox}>
+            <View
+              style={[
+                styles.pickerBox,
+                { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+              ]}
+            >
               <DateTimePicker
                 mode="date"
                 display="spinner"
                 value={parseDateString(date)}
                 onChange={handleDateChange}
+                themeVariant={isDark ? "dark" : "light"}
+                textColor={isDark ? "#FFFFFF" : "#111827"}
               />
             </View>
           </Pressable>
@@ -396,7 +441,12 @@ export default function CreateOrEditActivity() {
             style={styles.modalOverlay}
             onPress={() => setShowTimePicker(false)}
           >
-            <View style={styles.pickerBox}>
+            <View
+              style={[
+                styles.pickerBox,
+                { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+              ]}
+            >
               <DateTimePicker
                 mode="time"
                 display="spinner"
@@ -411,6 +461,8 @@ export default function CreateOrEditActivity() {
                     : new Date()
                 }
                 onChange={handleTimeChange}
+                themeVariant={isDark ? "dark" : "light"}
+                textColor={isDark ? "#FFFFFF" : "#111827"}
               />
             </View>
           </Pressable>
@@ -442,19 +494,18 @@ const styles = StyleSheet.create({
     paddingTop: 56,
     paddingHorizontal: 16,
     gap: 12,
+    paddingBottom: 24,
   },
   heading: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
 
   input: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
     borderRadius: 8,
+    padding: 10,
   },
 
   inputPressable: {
     borderWidth: 1,
-    borderColor: "#ccc",
     borderRadius: 8,
   },
   inputInner: {
@@ -493,7 +544,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   pickerBox: {
-    backgroundColor: "#fff",
     borderRadius: 12,
     paddingVertical: 8,
   },

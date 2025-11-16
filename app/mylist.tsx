@@ -22,6 +22,8 @@ export default function MyListScreen() {
   const refreshFlag = useAppSelector(
     (state) => state.activityRefresh.refreshFlag
   );
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
 
   const router = useRouter();
 
@@ -121,9 +123,24 @@ export default function MyListScreen() {
   -------------------------------------------------------- */
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Loading...</Text>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? "#60A5FA" : "#2563eb"}
+        />
+        <Text
+          style={[
+            styles.loadingText,
+            { color: isDark ? "#9CA3AF" : "#666666" },
+          ]}
+        >
+          Loading...
+        </Text>
       </View>
     );
   }
@@ -133,8 +150,18 @@ export default function MyListScreen() {
   -------------------------------------------------------- */
   if (!activities.length) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.emptyText,
+            { color: isDark ? "#9CA3AF" : "#777777" },
+          ]}
+        >
           {role === "student"
             ? "You haven't registered for any activities yet."
             : "You haven't created any activities yet."}
@@ -143,7 +170,10 @@ export default function MyListScreen() {
         {/* Organizer create button */}
         {role === "organizer" && user && (
           <Pressable
-            style={styles.createBtn}
+            style={[
+              styles.createBtn,
+              { backgroundColor: isDark ? "#3B82F6" : "#2563eb" },
+            ]}
             onPress={() => router.push("/organizer/create")}
           >
             <Text style={styles.createBtnText}>＋ Create New Activity</Text>
@@ -157,13 +187,28 @@ export default function MyListScreen() {
      Render list
   -------------------------------------------------------- */
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+      ]}
+    >
       <View style={styles.header}>
-        <Text style={styles.title}>{headerTitle}</Text>
+        <Text
+          style={[
+            styles.title,
+            { color: isDark ? "#E5E7EB" : "#111827" },
+          ]}
+        >
+          {headerTitle}
+        </Text>
 
         {role === "organizer" && user && (
           <Pressable
-            style={styles.createBtn}
+            style={[
+              styles.createBtn,
+              { backgroundColor: isDark ? "#3B82F6" : "#2563eb" },
+            ]}
             onPress={() => router.push("/organizer/create")}
           >
             <Text style={styles.createBtnText}>＋ Create New Activity</Text>
@@ -179,7 +224,8 @@ export default function MyListScreen() {
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
-            onRefresh={() => loadMyActivities(true)} 
+            onRefresh={() => loadMyActivities(true)}
+            tintColor={isDark ? "#60A5FA" : "#2563eb"}
           />
         }
         contentContainerStyle={styles.listContent}
@@ -198,7 +244,6 @@ export default function MyListScreen() {
    Styles
 -------------------------------------------------------- */
 const styles = StyleSheet.create({
-
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
 
   header: {
@@ -215,18 +260,17 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingBottom: 24,
-    flexGrow: 1, 
+    flexGrow: 1,
   },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  loadingText: { marginTop: 8, color: "#666" },
-  emptyText: { fontSize: 16, color: "#777", textAlign: "center", padding: 20 },
+  loadingText: { marginTop: 8 },
+  emptyText: { fontSize: 16, textAlign: "center", padding: 20 },
 
   createBtn: {
     marginTop: 4,
-    alignSelf: "stretch", 
-    backgroundColor: "#2563eb",
-    paddingVertical: 14, 
+    alignSelf: "stretch",
+    paddingVertical: 14,
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",

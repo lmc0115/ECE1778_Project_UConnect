@@ -14,13 +14,17 @@ import { useAppSelector } from "../store/hooks";
 import LoginModal from "../components/LoginModal";
 import ActivityCard from "../components/ActivityCard";
 import { fetchActivities } from "../lib/activities";
-import {
-  selectIsAuthed,
-} from "../store/slices/userSlice";
+import { selectIsAuthed } from "../store/slices/userSlice";
 
 export default function ActivityScreen() {
   const authed = useAppSelector(selectIsAuthed);
-  const refreshFlag = useAppSelector((state) => state.activityRefresh.refreshFlag);
+  const refreshFlag = useAppSelector(
+    (state) => state.activityRefresh.refreshFlag
+  );
+
+  // Read current theme
+  const theme = useAppSelector((state) => state.theme.theme);
+  const isDark = theme === "dark";
 
   const [showPrompt, setShowPrompt] = useState(!authed);
   const [activities, setActivities] = useState<any[]>([]);
@@ -58,9 +62,24 @@ export default function ActivityScreen() {
   ----------------------------------------------------------- */
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Loading activities...</Text>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+        ]}
+      >
+        <ActivityIndicator
+          size="large"
+          color={isDark ? "#60A5FA" : "#2563eb"}
+        />
+        <Text
+          style={[
+            styles.loadingText,
+            { color: isDark ? "#E5E7EB" : "#666666" },
+          ]}
+        >
+          Loading activities...
+        </Text>
       </View>
     );
   }
@@ -70,14 +89,36 @@ export default function ActivityScreen() {
   ----------------------------------------------------------- */
   if (!activities.length) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>No activities available yet.</Text>
+      <View
+        style={[
+          styles.center,
+          { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.emptyText,
+            { color: isDark ? "#9CA3AF" : "#777777" },
+          ]}
+        >
+          No activities available yet.
+        </Text>
         <Pressable onPress={loadActivities}>
-          <Text style={styles.retry}>↻ Refresh</Text>
+          <Text
+            style={[
+              styles.retry,
+              { color: isDark ? "#60A5FA" : "#2563eb" },
+            ]}
+          >
+            ↻ Refresh
+          </Text>
         </Pressable>
 
         {!authed && (
-          <LoginModal visible={showPrompt} onClose={() => setShowPrompt(false)} />
+          <LoginModal
+            visible={showPrompt}
+            onClose={() => setShowPrompt(false)}
+          />
         )}
       </View>
     );
@@ -87,14 +128,30 @@ export default function ActivityScreen() {
      RENDER LIST
   ----------------------------------------------------------- */
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Activities</Text>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#020617" : "#FFFFFF" },
+      ]}
+    >
+      <Text
+        style={[
+          styles.title,
+          { color: isDark ? "#E5E7EB" : "#111827" },
+        ]}
+      >
+        Activities
+      </Text>
 
       <FlatList
         data={activities}
         keyExtractor={(a) => a.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={loadActivities} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={loadActivities}
+            tintColor={isDark ? "#E5E7EB" : undefined}
+          />
         }
         contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item }) => (
@@ -106,7 +163,10 @@ export default function ActivityScreen() {
       />
 
       {!authed && (
-        <LoginModal visible={showPrompt} onClose={() => setShowPrompt(false)} />
+        <LoginModal
+          visible={showPrompt}
+          onClose={() => setShowPrompt(false)}
+        />
       )}
     </View>
   );
@@ -119,12 +179,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  loadingText: { marginTop: 8, color: "#666" },
-  emptyText: { fontSize: 16, color: "#777" },
+  loadingText: { marginTop: 8 },
+  emptyText: { fontSize: 16 },
   retry: {
     marginTop: 6,
     fontSize: 14,
-    color: "#2563eb",
     textDecorationLine: "underline",
   },
 });
