@@ -4,6 +4,8 @@ import { store } from "../store/store";
 import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { supabase } from "../lib/supabase";
+import * as Notifications from "expo-notifications";
+
 
 // Deep linking config (kept exactly from your logic)
 const linking = {
@@ -17,6 +19,15 @@ const linking = {
     },
   },
 };
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 export default function RootLayout() {
   useEffect(() => {
