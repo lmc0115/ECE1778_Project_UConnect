@@ -22,6 +22,8 @@ export default function LoginModal({ visible, onClose }: Props) {
   const [pwd, setPwd] = useState("");
   const [role, setRole] = useState<"student" | "organizer">("student");
   const dispatch = useAppDispatch();
+  const [registerMode, setRegisterMode] = useState(false);
+  const [showRoleOptions, setShowRoleOptions] = useState(false);
 
   // ---- LOGIN ----
   const onLogin = async () => {
@@ -86,6 +88,16 @@ export default function LoginModal({ visible, onClose }: Props) {
     }
   };
 
+  const onPressRegisterLink = () => {
+    if (!registerMode) {
+      // First click: just enter register mode and show role dropdown
+      setRegisterMode(true);
+    } else {
+      // Already in register mode: perform actual registration
+      onRegister();
+    }
+  };
+
   // ---- RESET PASSWORD ----
   const onResetPassword = () => {
     if (!email) {
@@ -113,7 +125,9 @@ export default function LoginModal({ visible, onClose }: Props) {
         <Pressable style={styles.backdrop} onPress={onClose} />
 
         <View style={styles.card}>
-          <Text style={styles.title}>Login</Text>
+          <Text style={styles.title}>
+            {registerMode ? "Register" : "Login"}
+          </Text>
 
           <Text style={styles.label}>Email</Text>
           <TextInput
@@ -134,41 +148,53 @@ export default function LoginModal({ visible, onClose }: Props) {
             secureTextEntry
           />
 
-          <View style={styles.roleRow}>
-            <Pressable
-              onPress={() => setRole("student")}
-              style={[styles.roleChip, role === "student" && styles.roleChipActive]}
-            >
-              <Text
-                style={[
-                  styles.roleChipText,
-                  role === "student" && styles.roleChipTextActive,
-                ]}
+          {registerMode && (
+            <View style={{ marginBottom: 12 }}>
+              <Text style={styles.label}>Role</Text>
+              <Pressable
+                style={styles.input}
+                onPress={() => setShowRoleOptions((prev) => !prev)}
               >
-                Student
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setRole("organizer")}
-              style={[styles.roleChip, role === "organizer" && styles.roleChipActive]}
-            >
-              <Text
-                style={[
-                  styles.roleChipText,
-                  role === "organizer" && styles.roleChipTextActive,
-                ]}
-              >
-                Organizer
-              </Text>
-            </Pressable>
-          </View>
+                <Text>{role === "student" ? "Student" : "Organizer"}</Text>
+              </Pressable>
 
-          < AppButton title = "Login" onPress = { onLogin } type = "primary" />
+          {showRoleOptions && (
+            <View style={styles.dropdown}>
+              <Pressable
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setRole("student");
+                  setShowRoleOptions(false);
+                }}
+              >
+                <Text>Student</Text>
+              </Pressable>
+              <Pressable
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setRole("organizer");
+                  setShowRoleOptions(false);
+                }}
+              >
+                <Text>Organizer</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+  )}
+
+          <AppButton
+            title="Login"
+            onPress={onLogin}
+            disabled={false}
+          />
 
 
           <View style={styles.linkRow}>
-            <Pressable onPress={onRegister}>
-              <Text style={styles.linkText}>Register</Text>
+            <Pressable onPress={onPressRegisterLink}>
+              <Text style={styles.linkText}>
+                {registerMode ? "Confirm register" : "Register"}
+              </Text>
             </Pressable>
             <View style={styles.linkDivider} />
             <Pressable onPress={onResetPassword}>
@@ -176,10 +202,10 @@ export default function LoginModal({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          < AppButton
-             title = "Continue as guest"
-             onPress = { onContinueAsGuest }
-             type = "ghost"
+          <AppButton
+            title="Continue as guest"
+            onPress={onContinueAsGuest}
+            disabled={false}
           />
         </View>
       </SafeAreaView>
@@ -274,5 +300,17 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: "#333",
     marginBottom: 4,
+  },
+  dropdown: {
+    borderWidth: 1,
+    borderColor: "#e1e1e1",
+    borderRadius: 10,
+    backgroundColor: "#ffffff",
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
 });
