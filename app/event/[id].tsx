@@ -16,7 +16,6 @@ import {
   selectRole,
   selectUser,
 } from "../../store/slices/userSlice";
-import * as Notifications from "expo-notifications";
 import ImageModal from "../../components/ImageModal";
 import AppButton from "../../components/AppButton";
 import { useFocusEffect } from "@react-navigation/native";
@@ -27,24 +26,6 @@ import {
   registerForActivity,
   cancelRegistration,
 } from "../../lib/activities";
-
-/* -------------------------------------------------------------
-   Helper: Send push notification
-------------------------------------------------------------- */
-async function sendPush(token: string, title: string, body: string) {
-  if (!token) return;
-
-  await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: token,
-      sound: "default",
-      title,
-      body,
-    }),
-  });
-}
 
 export default function EventDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -110,43 +91,7 @@ export default function EventDetails() {
   }, [id, authed, role]);
 
   /* -------------------------------------------------------------
-     FETCH ORGANIZER TOKEN
-  ------------------------------------------------------------- */
-  const fetchOrganizerPushToken = async (organizerId: string) => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("expo_push_token")
-      .eq("id", organizerId)
-      .maybeSingle();
-
-    return data?.expo_push_token ?? null;
-  };
-
-  /* -------------------------------------------------------------
-     FETCH ALL REGISTERED STUDENT TOKENS
-  ------------------------------------------------------------- */
-  const fetchStudentTokens = async (activityId: string) => {
-    const { data: regs } = await supabase
-      .from("registrations")
-      .select("user_id")
-      .eq("activity_id", activityId);
-
-    if (!regs || regs.length === 0) return [];
-
-    const ids = regs.map((r) => r.user_id);
-
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("expo_push_token")
-      .in("id", ids);
-
-    return profiles
-      .map((p) => p.expo_push_token)
-      .filter((t) => Boolean(t));
-  };
-
-  /* -------------------------------------------------------------
-     REGISTER
+     REGISTER (notifications removed)
   ------------------------------------------------------------- */
   const handleRegister = async () => {
     if (!id || !event) return;
@@ -156,42 +101,15 @@ export default function EventDetails() {
 
       const result = await registerForActivity(String(id));
 
-      // schedule reminder
-      const start = new Date(`${event.date} ${event.start_time}`);
-      const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
-
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "Event starting soon",
-          body: event.title,
-        },
-        trigger: { type: "date", date: reminderTime },
-      });
-
-      // --- Send push to organizer
-      const organizerToken = await fetchOrganizerPushToken(event.organizer_id);
-      if (organizerToken) {
-        const { count } = await supabase
-          .from("registrations")
-          .select("*", { count: "exact", head: true })
-          .eq("activity_id", id);
-
-        await sendPush(
-          organizerToken,
-          "New registration",
-          `A student just registered for "${event.title}". Total: ${count}`
-        );
-      }
-
       Alert.alert(
         result.alreadyRegistered ? "Already registered" : "Registered",
         result.alreadyRegistered
           ? "You already registered for this event."
-          : "We’ll remind you before the event starts."
+          : "Registration successful."
       );
 
       setRegistered(true);
-      router.setParams({ refresh: "1" }); // refresh My List
+      router.setParams({ refresh: "1" });
     } catch (err: any) {
       Alert.alert("Error", err.message ?? "Failed to register.");
     } finally {
@@ -200,14 +118,14 @@ export default function EventDetails() {
   };
 
   /* -------------------------------------------------------------
-     CANCEL REGISTRATION
+     CANCEL REGISTRATION (notifications removed)
   ------------------------------------------------------------- */
   const handleCancel = async () => {
     if (!id) return;
 
     Alert.alert(
       "Cancel registration?",
-      "You will no longer receive reminders.",
+      "You will not be registered for this event.",
       [
         { text: "Keep", style: "cancel" },
         {
@@ -217,18 +135,6 @@ export default function EventDetails() {
             try {
               setRegLoading(true);
               await cancelRegistration(String(id));
-
-              // notify organizer
-              const organizerToken = await fetchOrganizerPushToken(
-                event.organizer_id
-              );
-              if (organizerToken) {
-                await sendPush(
-                  organizerToken,
-                  "Registration cancelled",
-                  `A student removed their registration from "${event.title}".`
-                );
-              }
 
               Alert.alert("Cancelled", "Registration removed.", [
                 {
