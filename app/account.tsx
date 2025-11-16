@@ -1,4 +1,3 @@
-// app/account.tsx
 import { useState } from "react";
 import {
   View,
@@ -27,7 +26,6 @@ import {
 import LoginModal from "../components/LoginModal";
 import { uploadProfilePhoto, updateProfile } from "../lib/profile";
 import { supabase } from "lib/supabase";
-
 import { toggleTheme } from "../store/slices/themeSlice";
 
 export default function Account() {
@@ -49,13 +47,6 @@ export default function Account() {
 
   const onLogout = () => dispatch(logoutUser());
 
-  const bgColor = isDark ? "#020617" : "#FFFFFF";
-  const mainTextColor = isDark ? "#E5E7EB" : "#111827";
-  const secondaryTextColor = isDark ? "#9CA3AF" : "#6B7280";
-  const cardBg = isDark ? "#020617" : "#FFFFFF";
-  const cardBorderColor = isDark ? "#374151" : "#E5E7EB";
-  const linkColor = isDark ? "#60A5FA" : "#2563eb";
-
   /* --------------------------------------------------------------
      Pick + Upload Profile Photo
   -------------------------------------------------------------- */
@@ -71,9 +62,9 @@ export default function Account() {
       setSaving(true);
 
       const uri = result.assets[0].uri;
-      const url = await uploadProfilePhoto(uri, user.id);
+      const url = await uploadProfilePhoto(uri, user!.id);
 
-      await updateProfile(user.id, { avatar_url: url });
+      await updateProfile(user!.id, { avatar_url: url });
       dispatch(updateAvatarUrl(url));
 
       Alert.alert("Success", "Profile photo updated.");
@@ -96,7 +87,7 @@ export default function Account() {
       setEditVisible(false);
       Alert.alert("Updated", "Username saved.");
     } catch (err: any) {
-      Alert.alert("Error", err);
+      Alert.alert("Error", String(err));
     } finally {
       setSaving(false);
     }
@@ -127,37 +118,42 @@ export default function Account() {
     }
   };
 
-  const handleToggleTheme = () => {
+  /* --------------------------------------------------------------
+     Theme colors
+  -------------------------------------------------------------- */
+  const bgColor = isDark ? "#020617" : "#F9FAFB";
+  const cardBg = isDark ? "#0B1120" : "#FFFFFF";
+  const mainText = isDark ? "#F9FAFB" : "#111827";
+  const secondaryText = isDark ? "#9CA3AF" : "#6B7280";
+  const hintBlue = "#2563eb";
+  const borderColor = isDark ? "#1F2937" : "#E5E7EB";
+
+  const onToggleTheme = () => {
     dispatch(toggleTheme());
   };
+
+  const themeDisplay = isDark ? "Dark" : "Light";
+  const themeButtonLabel = isDark
+    ? "Click to switch to Light"
+    : "Click to switch to Dark";
 
   /* --------------------------------------------------------------
      UI
   -------------------------------------------------------------- */
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
-      <Text style={[styles.title, { color: mainTextColor }]}>Account</Text>
+      <Text style={[styles.title, { color: mainText }]}>Account</Text>
 
       {!user && (
         <>
           <Pressable
-            style={[styles.button, styles.loginButton]}
+            style={[
+              styles.button,
+              { backgroundColor: hintBlue, marginTop: 8 },
+            ]}
             onPress={() => setShowLogin(true)}
           >
             <Text style={styles.buttonText}>Login / Register</Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.button,
-              styles.themeButton,
-              { backgroundColor: isDark ? "#4B5563" : "#111827" },
-            ]}
-            onPress={handleToggleTheme}
-          >
-            <Text style={styles.buttonText}>
-              {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            </Text>
           </Pressable>
 
           <LoginModal visible={showLogin} onClose={() => setShowLogin(false)} />
@@ -182,7 +178,7 @@ export default function Account() {
                 />
               )}
             </Pressable>
-            <Text style={[styles.photoHint, { color: linkColor }]}>
+            <Text style={[styles.photoHint, { color: hintBlue }]}>
               Tap to change photo
             </Text>
           </View>
@@ -193,71 +189,61 @@ export default function Account() {
               styles.infoCard,
               {
                 backgroundColor: cardBg,
-                borderColor: cardBorderColor,
-                borderWidth: 1,
+                borderColor,
+                borderWidth: isDark ? 1 : 0,
                 shadowOpacity: isDark ? 0 : 0.05,
               },
             ]}
           >
             {/* Username + Edit */}
             <View style={styles.row}>
-              <Text style={[styles.label, { color: mainTextColor }]}>
-                Username
-              </Text>
+              <Text style={[styles.label, { color: mainText }]}>Username</Text>
               <Pressable onPress={() => setEditVisible(true)}>
-                <Text style={[styles.editText, { color: linkColor }]}>
-                  Edit
-                </Text>
+                <Text style={[styles.editText, { color: hintBlue }]}>Edit</Text>
               </Pressable>
             </View>
-            <Text style={[styles.currentValue, { color: mainTextColor }]}>
+            <Text style={[styles.currentValue, { color: mainText }]}>
               {usernameInStore}
             </Text>
 
             {/* Email */}
-            <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>
+            <Text style={[styles.infoLabel, { color: secondaryText }]}>
               Email
             </Text>
-            <Text style={[styles.infoValue, { color: mainTextColor }]}>
+            <Text style={[styles.infoValue, { color: mainText }]}>
               {user.email}
             </Text>
 
-            {/* Role + badge */}
-            <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>
+            {/* Role */}
+            <Text style={[styles.infoLabel, { color: secondaryText }]}>
               Role
             </Text>
-            <View style={styles.roleRow}>
-              <Text style={[styles.infoValue, { color: mainTextColor }]}>
-                {role}
-              </Text>
-              <View
-                style={[
-                  styles.roleChip,
-                  role === "student"
-                    ? styles.roleChipStudent
-                    : styles.roleChipOrganizer,
-                ]}
-              >
-                <Text style={styles.roleChipText}>
-                  {role === "student" ? "Student" : "Organizer"}
-                </Text>
-              </View>
-            </View>
+            <Text style={[styles.infoValue, { color: mainText }]}>{role}</Text>
 
-            <View style={[styles.roleRow, { marginTop: 12 }]}>
-              <Text style={[styles.infoLabel, { color: secondaryTextColor }]}>
-                Theme
+            {/* Theme */}
+            <Text
+              style={[
+                styles.infoLabel,
+                { color: secondaryText, marginTop: 12 },
+              ]}
+            >
+              Theme
+            </Text>
+            <View style={styles.themeRow}>
+              <Text style={[styles.infoValue, { color: mainText }]}>
+                {themeDisplay}
               </Text>
+
               <Pressable
                 style={[
-                  styles.themeBadge,
-                  { backgroundColor: isDark ? "#4B5563" : "#111827" },
+                  styles.themeButton,
+                  {
+                    backgroundColor: isDark ? "#4B5563" : "#111827",
+                  },
                 ]}
-                onPress={handleToggleTheme}
+                onPress={onToggleTheme}
               >
-                <Text style={styles.themeBadgeText}>
-                  {isDark ? "Dark" : "Light"}
-                </Text>
+                <Text style={styles.themeButtonText}>{themeButtonLabel}</Text>
               </Pressable>
             </View>
           </View>
@@ -271,7 +257,12 @@ export default function Account() {
           </Pressable>
 
           <Pressable onPress={handleResetPassword}>
-            <Text style={[styles.forgotText, { color: linkColor }]}>
+            <Text
+              style={[
+                styles.forgotText,
+                { color: hintBlue, textAlign: "center" },
+              ]}
+            >
               Forgot Password?
             </Text>
           </Pressable>
@@ -286,10 +277,10 @@ export default function Account() {
           <View
             style={[
               styles.modalBox,
-              { backgroundColor: bgColor, borderColor: cardBorderColor },
+              { backgroundColor: cardBg, borderColor, borderWidth: 1 },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: mainTextColor }]}>
+            <Text style={[styles.modalTitle, { color: mainText }]}>
               Edit Username
             </Text>
 
@@ -297,19 +288,22 @@ export default function Account() {
               style={[
                 styles.input,
                 {
-                  backgroundColor: bgColor,
-                  color: mainTextColor,
-                  borderColor: cardBorderColor,
+                  backgroundColor: isDark ? "#020617" : "#FFFFFF",
+                  color: mainText,
+                  borderColor,
                 },
               ]}
               value={usernameInput}
               onChangeText={setUsernameInput}
               placeholder="Enter new username"
-              placeholderTextColor={secondaryTextColor}
+              placeholderTextColor={secondaryText}
             />
 
             <Pressable
-              style={[styles.button, styles.loginButton]}
+              style={[
+                styles.button,
+                { backgroundColor: hintBlue, marginTop: 0 },
+              ]}
               onPress={saveUsername}
               disabled={saving}
             >
@@ -321,7 +315,7 @@ export default function Account() {
             <Pressable
               style={[
                 styles.button,
-                { backgroundColor: isDark ? "#4B5563" : "#777" },
+                { backgroundColor: "#6B7280", marginTop: 12 },
               ]}
               onPress={() => setEditVisible(false)}
             >
@@ -360,9 +354,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     padding: 16,
     borderRadius: 12,
-    backgroundColor: "#ffffff",
     shadowColor: "#000",
-    shadowOpacity: 0.05,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
@@ -398,25 +390,20 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
 
-  roleRow: {
+  themeRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 2,
+    marginTop: 4,
+    gap: 8,
   },
-  roleChip: {
+  themeButton: {
+    paddingVertical: 6,
     paddingHorizontal: 10,
-    paddingVertical: 4,
     borderRadius: 999,
   },
-  roleChipStudent: {
-    backgroundColor: "#16a34a",
-  },
-  roleChipOrganizer: {
-    backgroundColor: "#2563eb",
-  },
-  roleChipText: {
-    color: "#ffffff",
+  themeButtonText: {
+    color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "600",
   },
@@ -434,30 +421,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginTop: 16,
   },
-  loginButton: {
-    backgroundColor: "#2563eb",
-  },
   logoutButton: {
     backgroundColor: "#DC2626",
-  },
-  themeButton: {
-    marginTop: 12,
   },
   buttonText: {
     color: "white",
     fontWeight: "600",
     fontSize: 16,
-  },
-
-  themeBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  themeBadgeText: {
-    color: "#ffffff",
-    fontSize: 12,
-    fontWeight: "600",
   },
 
   forgotText: {
