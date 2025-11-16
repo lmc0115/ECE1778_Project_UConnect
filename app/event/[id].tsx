@@ -9,6 +9,7 @@ import {
   Pressable,
   ActivityIndicator,
 } from "react-native";
+import * as Notifications from "expo-notifications";
 import { supabase } from "../../lib/supabase";
 import { useAppSelector } from "../../store/hooks";
 import {
@@ -26,6 +27,59 @@ import {
   registerForActivity,
   cancelRegistration,
 } from "../../lib/activities";
+
+
+/* -------------------------------------------------------------
+   Notification helpers
+------------------------------------------------------------- */
+
+// Simple push sender using Expo push API
+async function sendPush(token: string, title: string, body: string) {
+    if (!token) return;
+
+    await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            to: token,
+            sound: "default",
+            title,
+            body,
+        }),
+    });
+}
+
+// Read organizer's push token from profiles table
+async function getOrganizerToken(organizerId: string) {
+    const { data } = await supabase
+        .from("profiles")
+        .select("expo_push_token")
+        .eq("id", organizerId)
+        .maybeSingle();
+
+    return data?.expo_push_token ?? null;
+}
+
+// Local reminder 30 minutes before event start time
+async function scheduleLocalReminder(
+    date: string,
+    startTime: string,
+    title: string,
+    body: string
+) {
+    if (!date || !startTime) return;
+
+    const start = new Date(`${date} ${startTime}`);
+    if (isNaN(start.getTime())) return;
+
+    const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
+    if (reminderTime.getTime() <= Date.now()) return;
+
+    await Notifications.scheduleNotificationAsync({
+        content: { title, body },
+        trigger: { type: "date", date: reminderTime },
+    });
+}
 
 export default function EventDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -91,7 +145,7 @@ export default function EventDetails() {
   }, [id, authed, role]);
 
   /* -------------------------------------------------------------
-     REGISTER (notifications removed)
+     REGISTER (with local + push notifications)
   ------------------------------------------------------------- */
   const handleRegister = async () => {
     if (!id || !event) return;
@@ -101,11 +155,37 @@ export default function EventDetails() {
 
       const result = await registerForActivity(String(id));
 
+      // Only send notifications when this is a NEW registration
+      if (!result.alreadyRegistered) {
+        // 1) Local reminder for the student: 30 minutes before start
+        await scheduleLocalReminder(
+          event.date,
+          event.start_time,
+          "Event starting soon",
+          event.title
+        );
+
+        // 2) Push to organizer: "A new student registered... Total registered: X."
+        const organizerToken = await getOrganizerToken(event.organizer_id);
+        if (organizerToken) {
+          const { count } = await supabase
+            .from("registrations")
+            .select("*", { count: "exact", head: true })
+            .eq("activity_id", id);
+
+          await sendPush(
+            organizerToken,
+            "New registration",
+            `A new student registered for "${event.title}". Total registered: ${count}.`
+          );
+        }
+      }
+
       Alert.alert(
         result.alreadyRegistered ? "Already registered" : "Registered",
         result.alreadyRegistered
           ? "You already registered for this event."
-          : "Registration successful."
+          : "Registration successful. We will remind you before the event."
       );
 
       setRegistered(true);
@@ -116,6 +196,7 @@ export default function EventDetails() {
       setRegLoading(false);
     }
   };
+
 
   /* -------------------------------------------------------------
      CANCEL REGISTRATION (notifications removed)

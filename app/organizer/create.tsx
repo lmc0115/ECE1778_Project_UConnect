@@ -74,6 +74,28 @@ async function getOrganizerToken(organizerId: string) {
   return data?.expo_push_token ?? null;
 }
 
+// Local reminder for organizer: 30 minutes before start time
+async function scheduleLocalReminder(
+    date: string,
+    startTime: string,
+    title: string,
+    body: string
+) {
+    if (!date || !startTime) return;
+
+    const start = new Date(`${date} ${startTime}`);
+    if (isNaN(start.getTime())) return;
+
+    const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
+    if (reminderTime.getTime() <= Date.now()) return;
+
+    await Notifications.scheduleNotificationAsync({
+        content: { title, body },
+        trigger: { type: "date", date: reminderTime },
+    });
+}
+
+
 export default function CreateOrEditActivity() {
   const { mode, id } = useLocalSearchParams<{ mode: string; id: string }>();
   const editing = mode === "edit";
@@ -193,7 +215,7 @@ export default function CreateOrEditActivity() {
           await sendPush(
             organizerToken,
             "Activity Updated",
-            `You successfully updated "${title}".`
+            `You successfully modified "${title}".`
           );
         }
 
@@ -203,7 +225,7 @@ export default function CreateOrEditActivity() {
           await sendPush(
             token,
             "Activity Updated",
-            `The activity "${title}" was updated. Please check the details.`
+            `The activity "${title}" was modified. Please check the details.`
           );
         }
 
@@ -221,6 +243,14 @@ export default function CreateOrEditActivity() {
           image_urls: images,
           organizer_id: user.id,
         });
+
+        // Local notification for organizer: 30 minutes before start
+        await scheduleLocalReminder(
+          date,
+          startTime,
+          "Your activity is starting soon",
+          title
+        );
 
         dispatch(triggerRefresh());
         Alert.alert("Created!", "Activity created successfully.");
