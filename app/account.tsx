@@ -44,7 +44,7 @@ export default function Account() {
   const onLogout = () => dispatch(logoutUser());
 
   /* --------------------------------------------------------------
-     Pick + Upload Profile Photo (same method as activity upload)
+     Pick + Upload Profile Photo
   -------------------------------------------------------------- */
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -90,8 +90,8 @@ export default function Account() {
   };
 
   /* --------------------------------------------------------------
-   RESET PASSWORD (send email)
--------------------------------------------------------------- */
+     RESET PASSWORD (send email)
+  -------------------------------------------------------------- */
   const handleResetPassword = async () => {
     if (!user?.email) {
       Alert.alert("Missing email", "You must be logged in.");
@@ -133,49 +133,69 @@ export default function Account() {
 
       {user && (
         <>
-          {/* Avatar */}
-          <Pressable onPress={pickPhoto} disabled={saving}>
-            {saving ? (
-              <ActivityIndicator size="large" style={{ marginBottom: 10 }} />
-            ) : (
-              <Image
-                source={{
-                  uri:
-                    avatarUrl ||
-                    "https://img.icons8.com/ios-filled/200/user.png",
-                }}
-                style={styles.avatar}
-              />
-            )}
-            <Text style={styles.photoHint}>Tap to change photo</Text>
-          </Pressable>
-
-          {/* Username Row */}
-          <View style={styles.row}>
-            <Text style={styles.label}>Username</Text>
-            <Pressable onPress={() => setEditVisible(true)}>
-              <Text style={styles.editText}>Edit</Text>
+          {/* Avatar & photo hint */}
+          <View style={styles.profileHeader}>
+            <Pressable onPress={pickPhoto} disabled={saving}>
+              {saving ? (
+                <ActivityIndicator size="large" style={{ marginBottom: 10 }} />
+              ) : (
+                <Image
+                  source={{
+                    uri:
+                      avatarUrl ||
+                      "https://img.icons8.com/ios-filled/200/user.png",
+                  }}
+                  style={styles.avatar}
+                />
+              )}
             </Pressable>
+            <Text style={styles.photoHint}>Tap to change photo</Text>
           </View>
 
-          <Text style={styles.currentValue}>{usernameInStore}</Text>
+          {/* Info card */}
+          <View style={styles.infoCard}>
+            {/* Username + Edit */}
+            <View style={styles.row}>
+              <Text style={styles.label}>Username</Text>
+              <Pressable onPress={() => setEditVisible(true)}>
+                <Text style={styles.editText}>Edit</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.currentValue}>{usernameInStore}</Text>
 
-          {/* Email + Role */}
-          <Text style={styles.info}>Email: {user.email}</Text>
-          <Text style={styles.info}>Role: {role}</Text>
+            {/* Email */}
+            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoValue}>{user.email}</Text>
+
+            {/* Role + badge */}
+            <Text style={styles.infoLabel}>Role</Text>
+            <View style={styles.roleRow}>
+              <Text style={styles.infoValue}>{role}</Text>
+              <View
+                style={[
+                  styles.roleChip,
+                  role === "student"
+                    ? styles.roleChipStudent
+                    : styles.roleChipOrganizer,
+                ]}
+              >
+                <Text style={styles.roleChipText}>
+                  {role === "student" ? "Student" : "Organizer"}
+                </Text>
+              </View>
+            </View>
+          </View>
 
           {/* Logout */}
           <Pressable
-            style={[styles.button, { backgroundColor: "#DC2626" }]}
+            style={[styles.button, styles.logoutButton]}
             onPress={onLogout}
           >
             <Text style={styles.buttonText}>Sign Out</Text>
           </Pressable>
 
           <Pressable onPress={handleResetPassword}>
-            <Text style={{ color: "#2563eb", marginTop: 10 }}>
-              Forgot Password?
-            </Text>
+            <Text style={styles.forgotText}>Forgot Password?</Text>
           </Pressable>
         </>
       )}
@@ -225,17 +245,32 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
   title: { fontSize: 24, fontWeight: "700", marginBottom: 16 },
 
+  profileHeader: {
+    alignItems: "center",
+    marginBottom: 12,
+  },
+
   avatar: {
     width: 110,
     height: 110,
     borderRadius: 80,
-    alignSelf: "center",
     marginBottom: 6,
   },
   photoHint: {
     textAlign: "center",
     color: "#2563eb",
-    marginBottom: 20,
+  },
+
+  infoCard: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
 
   row: {
@@ -257,8 +292,42 @@ const styles = StyleSheet.create({
   currentValue: {
     fontSize: 16,
     color: "#333",
-    marginBottom: 20,
+    marginBottom: 12,
     marginTop: 4,
+  },
+
+  infoLabel: {
+    marginTop: 4,
+    fontSize: 13,
+    color: "#6b7280",
+  },
+  infoValue: {
+    fontSize: 15,
+    color: "#111827",
+    marginBottom: 4,
+  },
+
+  roleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 2,
+  },
+  roleChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+  },
+  roleChipStudent: {
+    backgroundColor: "#16a34a",
+  },
+  roleChipOrganizer: {
+    backgroundColor: "#2563eb",
+  },
+  roleChipText: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "600",
   },
 
   input: {
@@ -273,8 +342,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#2563eb",
     paddingVertical: 12,
     alignItems: "center",
-    borderRadius: 8,
-    marginBottom: 12,
+    borderRadius: 999,
+    marginTop: 16,
+  },
+  logoutButton: {
+    backgroundColor: "#DC2626",
   },
   buttonText: {
     color: "white",
@@ -282,10 +354,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 
-  info: {
-    marginTop: 6,
-    fontSize: 15,
-    color: "#444",
+  forgotText: {
+    color: "#2563eb",
+    marginTop: 10,
+    fontSize: 14,
   },
 
   /* Modal */

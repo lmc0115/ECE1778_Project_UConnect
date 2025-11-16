@@ -15,6 +15,11 @@ type Props = {
   compact?: boolean; // optional for smaller layout variants
 };
 
+const formatTime = (t?: string) => {
+  if (!t) return "";
+  return t.length >= 5 ? t.slice(0, 5) : t;
+};
+
 export default function ActivityCard({ item, onPress, compact = false }: Props) {
   return (
     <Pressable
@@ -34,7 +39,7 @@ export default function ActivityCard({ item, onPress, compact = false }: Props) 
         <Text style={styles.name}>{item.title}</Text>
         <Text style={styles.meta}>
           {item.date}
-          {item.start_time ? ` • ${item.start_time}` : ""}
+          {item.start_time ? ` • ${formatTime(item.start_time)}` : ""}
         </Text>
 
         {item.location ? (

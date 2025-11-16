@@ -31,58 +31,67 @@ export default function MyListScreen() {
 
   /* -------------------------------------------------------
      Load My Activities (for student or organizer)
+     fromPull = true  -> pull to refresh
+     fromPull = false -> normal
   -------------------------------------------------------- */
-  const loadMyActivities = useCallback(async () => {
-    try {
-      setRefreshing(true);
+  const loadMyActivities = useCallback(
+    async (fromPull: boolean = false) => {
+      try {
+        if (fromPull) {
+          setRefreshing(true);
+        }
 
-      // User not logged in
-      if (!user) {
-        setActivities([]);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
+        // User not logged in
+        if (!user) {
+          setActivities([]);
+          setLoading(false);
+          if (fromPull) setRefreshing(false);
+          return;
+        }
 
-      let result: any[] = [];
+        let result: any[] = [];
 
-      if (role === "student") {
-        // Fetch registered event IDs
-        const { data: regs } = await supabase
-          .from("registrations")
-          .select("activity_id")
-          .eq("user_id", user.id);
+        if (role === "student") {
+          // Fetch registered event IDs
+          const { data: regs } = await supabase
+            .from("registrations")
+            .select("activity_id")
+            .eq("user_id", user.id);
 
-        if (regs?.length) {
-          const ids = regs.map((r) => r.activity_id);
+          if (regs?.length) {
+            const ids = regs.map((r) => r.activity_id);
 
+            const { data: acts } = await supabase
+              .from("activities")
+              .select("*")
+              .in("id", ids)
+              .order("date", { ascending: true });
+
+            result = acts || [];
+          }
+        } else if (role === "organizer") {
+          // Fetch organizer-created events
           const { data: acts } = await supabase
             .from("activities")
             .select("*")
-            .in("id", ids)
+            .eq("organizer_id", user.id)
             .order("date", { ascending: true });
 
           result = acts || [];
         }
-      } else if (role === "organizer") {
-        // Fetch organizer-created events
-        const { data: acts } = await supabase
-          .from("activities")
-          .select("*")
-          .eq("organizer_id", user.id)
-          .order("date", { ascending: true });
 
-        result = acts || [];
+        setActivities(result);
+      } catch (err) {
+        console.error("Failed to load MyList:", err);
+      } finally {
+        setLoading(false);
+        if (fromPull) {
+          setRefreshing(false);
+        }
       }
-
-      setActivities(result);
-    } catch (err) {
-      console.error("Failed to load MyList:", err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [user, role]);
+    },
+    [user, role]
+  );
 
   /* -------------------------------------------------------
      Load on:
@@ -92,7 +101,7 @@ export default function MyListScreen() {
      - refreshFlag change
   -------------------------------------------------------- */
   useEffect(() => {
-    loadMyActivities();
+    loadMyActivities(false);
   }, [loadMyActivities, user, role, refreshFlag]);
 
   /* -------------------------------------------------------
@@ -100,9 +109,12 @@ export default function MyListScreen() {
   -------------------------------------------------------- */
   useFocusEffect(
     useCallback(() => {
-      loadMyActivities();
-    }, [user, role, refreshFlag])
+      loadMyActivities(false);
+    }, [user, role, refreshFlag, loadMyActivities])
   );
+
+  const headerTitle =
+    role === "student" ? "My Registered Activities" : "My Activities";
 
   /* -------------------------------------------------------
      Loading state
@@ -130,8 +142,11 @@ export default function MyListScreen() {
 
         {/* Organizer create button */}
         {role === "organizer" && user && (
-          <Pressable onPress={() => router.push("/organizer/create")}>
-            <Text style={styles.create}>＋ Create New Activity</Text>
+          <Pressable
+            style={styles.createBtn}
+            onPress={() => router.push("/organizer/create")}
+          >
+            <Text style={styles.createBtnText}>＋ Create New Activity</Text>
           </Pressable>
         )}
       </View>
@@ -143,17 +158,31 @@ export default function MyListScreen() {
   -------------------------------------------------------- */
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        {role === "student" ? "My Registered Activities" : "My Activities"}
-      </Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>{headerTitle}</Text>
 
+        {role === "organizer" && user && (
+          <Pressable
+            style={styles.createBtn}
+            onPress={() => router.push("/organizer/create")}
+          >
+            <Text style={styles.createBtnText}>＋ Create New Activity</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* list area */}
       <FlatList
+        style={styles.list}
         data={activities}
         keyExtractor={(a) => a.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={loadMyActivities} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => loadMyActivities(true)} 
+          />
         }
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
           <ActivityCard
             item={item}
@@ -161,16 +190,6 @@ export default function MyListScreen() {
           />
         )}
       />
-
-      {/* Organizer create button */}
-      {role === "organizer" && user && (
-        <Pressable
-          style={styles.createBtn}
-          onPress={() => router.push("/organizer/create")}
-        >
-          <Text style={styles.create}>＋ Create New Activity</Text>
-        </Pressable>
-      )}
     </View>
   );
 }
@@ -179,13 +198,42 @@ export default function MyListScreen() {
    Styles
 -------------------------------------------------------- */
 const styles = StyleSheet.create({
+
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
-  title: { fontSize: 22, fontWeight: "700", marginBottom: 12 },
+
+  header: {
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 24,
+    flexGrow: 1, 
+  },
 
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   loadingText: { marginTop: 8, color: "#666" },
   emptyText: { fontSize: 16, color: "#777", textAlign: "center", padding: 20 },
 
-  create: { marginTop: 12, fontSize: 18, color: "#2563eb" },
-  createBtn: { marginTop: 20, alignSelf: "center" },
+  createBtn: {
+    marginTop: 4,
+    alignSelf: "stretch", 
+    backgroundColor: "#2563eb",
+    paddingVertical: 14, 
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  createBtnText: {
+    color: "#ffffff",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });

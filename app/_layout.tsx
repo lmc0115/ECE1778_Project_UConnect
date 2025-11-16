@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { supabase } from "../lib/supabase";
 
-// Deep linking config (kept exactly from your logic)
+// Deep linking config
 const linking = {
   prefixes: ["uconnect://"],
   config: {
@@ -20,7 +20,6 @@ const linking = {
 
 export default function RootLayout() {
   useEffect(() => {
-    // No notification logic — effect remains if you want to add other setup later.
   }, []);
 
   return (
@@ -29,9 +28,39 @@ export default function RootLayout() {
         <Tabs.Screen name="index" options={{ title: "Activity" }} />
         <Tabs.Screen name="mylist" options={{ title: "My List" }} />
         <Tabs.Screen name="account" options={{ title: "Account" }} />
+
+        {/* The following pages can still be accessed via router.push(...) , but they will not appear on the bottom. */}
+
+        {/* Reset password */}
         <Tabs.Screen
           name="reset-password"
-          options={{ title: "Reset Password", href: "/reset-password" }}
+          options={{
+            href: null, 
+          }}
+        />
+
+        {/* Calendar */}
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            href: null,
+          }}
+        />
+
+        {/* Organizer */}
+        <Tabs.Screen
+          name="organizer/create"
+          options={{
+            href: null,
+          }}
+        />
+
+        {/* Event details */}
+        <Tabs.Screen
+          name="event/[id]"
+          options={{
+            href: null,
+          }}
         />
       </Tabs>
     </Provider>

@@ -27,6 +27,13 @@ import {
   cancelRegistration,
 } from "../../lib/activities";
 
+import LoginModal from "../../components/LoginModal";
+
+const formatTime = (t?: string | null) => {
+  if (!t) return "";
+  return t.length >= 5 ? t.slice(0, 5) : t;
+};
+
 export default function EventDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [event, setEvent] = useState<any>(null);
@@ -41,6 +48,8 @@ export default function EventDetails() {
   const [registered, setRegistered] = useState(false);
   const [regLoading, setRegLoading] = useState(false);
   const [regStatusLoading, setRegStatusLoading] = useState(true);
+
+  const [loginVisible, setLoginVisible] = useState(false);
 
   /* -------------------------------------------------------------
      REFRESH EVENT WHEN SCREEN FOCUSED
@@ -91,7 +100,7 @@ export default function EventDetails() {
   }, [id, authed, role]);
 
   /* -------------------------------------------------------------
-     REGISTER (notifications removed)
+     REGISTER
   ------------------------------------------------------------- */
   const handleRegister = async () => {
     if (!id || !event) return;
@@ -118,7 +127,7 @@ export default function EventDetails() {
   };
 
   /* -------------------------------------------------------------
-     CANCEL REGISTRATION (notifications removed)
+     CANCEL REGISTRATION
   ------------------------------------------------------------- */
   const handleCancel = async () => {
     if (!id) return;
@@ -187,8 +196,11 @@ export default function EventDetails() {
           ))}
 
         <Text style={styles.meta}>
-          {event.date} • {event.start_time} • {event.location}
+          {event.date}
+          {event.start_time ? ` • ${formatTime(event.start_time)}` : ""}
+          {event.location ? ` • ${event.location}` : ""}
         </Text>
+
 
         <Text style={styles.desc}>{event.introduction}</Text>
 
@@ -198,7 +210,7 @@ export default function EventDetails() {
             {!authed ? (
               <AppButton
                 title="Login to Register"
-                onPress={() => router.replace("/")}
+                onPress={() => setLoginVisible(true)}
               />
             ) : regStatusLoading ? (
               <AppButton title="Loading..." disabled />
@@ -240,6 +252,11 @@ export default function EventDetails() {
         visible={!!imageModalUrl}
         url={imageModalUrl}
         onClose={() => setImageModalUrl(null)}
+      />
+
+      <LoginModal
+        visible={loginVisible}
+        onClose={() => setLoginVisible(false)}
       />
     </>
   );
