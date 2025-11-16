@@ -60,7 +60,7 @@ async function getOrganizerToken(organizerId: string) {
     return data?.expo_push_token ?? null;
 }
 
-// Local reminder 30 minutes before event start time
+// Local reminder for organizer: 30 minutes before start time
 async function scheduleLocalReminder(
     date: string,
     startTime: string,

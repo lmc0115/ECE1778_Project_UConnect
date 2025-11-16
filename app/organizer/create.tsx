@@ -100,7 +100,6 @@ async function scheduleLocalReminder(
     });
 }
 
-
 export default function CreateOrEditActivity() {
   const { mode, id } = useLocalSearchParams<{ mode: string; id: string }>();
   const editing = mode === "edit";
@@ -200,6 +199,8 @@ export default function CreateOrEditActivity() {
         /* -------------------------------------------------------
            UPDATE ACTIVITY
         --------------------------------------------------------- */
+        await Notifications.cancelAllScheduledNotificationsAsync();
+
         await updateActivity(id!, {
           title,
           date,
