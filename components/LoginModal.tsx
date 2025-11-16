@@ -14,14 +14,20 @@ import { loginUser, signupUser } from "../store/slices/userSlice";
 import { supabase } from "../lib/supabase";
 import AppButton from "./AppButton";
 
-
 type Props = { visible: boolean; onClose: () => void };
+
+// Color const
+const STUDENT_COLOR = "#16a34a";
+const ORGANIZER_COLOR = "#2563eb";
+const GUEST_COLOR = "#6b7280";
 
 export default function LoginModal({ visible, onClose }: Props) {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
   const [role, setRole] = useState<"student" | "organizer">("student");
   const dispatch = useAppDispatch();
+
+  const primaryColor = role === "student" ? STUDENT_COLOR : ORGANIZER_COLOR;
 
   // ---- LOGIN ----
   const onLogin = async () => {
@@ -31,7 +37,9 @@ export default function LoginModal({ visible, onClose }: Props) {
     }
 
     try {
-      const result = await dispatch(loginUser({ email, password: pwd })).unwrap();
+      const result = await dispatch(
+        loginUser({ email, password: pwd })
+      ).unwrap();
       console.log("Logged in:", result.user.email, "Role:", result.role);
       onClose();
     } catch (err: any) {
@@ -50,7 +58,10 @@ export default function LoginModal({ visible, onClose }: Props) {
                     type: "signup",
                     email,
                   });
-                  Alert.alert("Email sent", "Check your inbox for the new confirmation link.");
+                  Alert.alert(
+                    "Email sent",
+                    "Check your inbox for the new confirmation link."
+                  );
                 } catch (e: any) {
                   Alert.alert("Error", e.message);
                 }
@@ -73,7 +84,9 @@ export default function LoginModal({ visible, onClose }: Props) {
     }
 
     try {
-      const result = await dispatch(signupUser({ email, password: pwd, role })).unwrap();
+      const result = await dispatch(
+        signupUser({ email, password: pwd, role })
+      ).unwrap();
       console.log("Registered:", result.email, "Role:", role);
 
       Alert.alert(
@@ -113,8 +126,48 @@ export default function LoginModal({ visible, onClose }: Props) {
         <Pressable style={styles.backdrop} onPress={onClose} />
 
         <View style={styles.card}>
-          <Text style={styles.title}>Login</Text>
+          <Text style={styles.title}>Login / Register</Text>
 
+          {/* Role select area */}
+          <View style={styles.roleRow}>
+            <Pressable
+              onPress={() => setRole("student")}
+              style={[
+                styles.roleChip,
+                role === "student" && styles.roleChipStudentActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.roleChipText,
+                  role === "student" && styles.roleChipTextActive,
+                ]}
+              >
+                Student
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setRole("organizer")}
+              style={[
+                styles.roleChip,
+                role === "organizer" && styles.roleChipOrganizerActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.roleChipText,
+                  role === "organizer" && styles.roleChipTextActive,
+                ]}
+              >
+                Organizer
+              </Text>
+            </Pressable>
+          </View>
+          <Text style={styles.roleHint}>
+            Role will be locked for this email after registration.
+          </Text>
+
+          {/* input area */}
           <Text style={styles.label}>Email</Text>
           <TextInput
             placeholder="Email"
@@ -134,52 +187,26 @@ export default function LoginModal({ visible, onClose }: Props) {
             secureTextEntry
           />
 
-          <View style={styles.roleRow}>
-            <Pressable
-              onPress={() => setRole("student")}
-              style={[styles.roleChip, role === "student" && styles.roleChipActive]}
-            >
-              <Text
-                style={[
-                  styles.roleChipText,
-                  role === "student" && styles.roleChipTextActive,
-                ]}
-              >
-                Student
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setRole("organizer")}
-              style={[styles.roleChip, role === "organizer" && styles.roleChipActive]}
-            >
-              <Text
-                style={[
-                  styles.roleChipText,
-                  role === "organizer" && styles.roleChipTextActive,
-                ]}
-              >
-                Organizer
-              </Text>
-            </Pressable>
-          </View>
+          {/* The color changes with the role */}
+          <AppButton title="Login" onPress={onLogin} color={primaryColor} />
+          <AppButton
+            title="Register"
+            onPress={onRegister}
+            color={primaryColor}
+          />
 
-          < AppButton title = "Login" onPress = { onLogin } type = "primary" />
-
-
+          {/* Reset password */}
           <View style={styles.linkRow}>
-            <Pressable onPress={onRegister}>
-              <Text style={styles.linkText}>Register</Text>
-            </Pressable>
-            <View style={styles.linkDivider} />
             <Pressable onPress={onResetPassword}>
               <Text style={styles.linkText}>Reset password</Text>
             </Pressable>
           </View>
 
-          < AppButton
-             title = "Continue as guest"
-             onPress = { onContinueAsGuest }
-             type = "ghost"
+          {/* Guest*/}
+          <AppButton
+            title="Continue as guest"
+            onPress={onContinueAsGuest}
+            color={GUEST_COLOR}
           />
         </View>
       </SafeAreaView>
@@ -212,7 +239,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     textAlign: "center",
-    marginBottom: 16,
+    marginBottom: 12,
   },
   input: {
     backgroundColor: "#f7f7f7",
@@ -227,7 +254,7 @@ const styles = StyleSheet.create({
   roleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 6,
   },
   roleChip: {
     flex: 1,
@@ -239,9 +266,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     backgroundColor: "#ffffff",
   },
-  roleChipActive: {
-    backgroundColor: "#2563eb",
-    borderColor: "#2563eb",
+
+  // Different roles activate their respective styles.
+  roleChipStudentActive: {
+    backgroundColor: STUDENT_COLOR,
+    borderColor: STUDENT_COLOR,
+  },
+  roleChipOrganizerActive: {
+    backgroundColor: ORGANIZER_COLOR,
+    borderColor: ORGANIZER_COLOR,
   },
   roleChipText: {
     fontSize: 13,
@@ -251,23 +284,24 @@ const styles = StyleSheet.create({
   roleChipTextActive: {
     color: "#ffffff",
   },
+  roleHint: {
+    fontSize: 11,
+    color: "#6b7280",
+    marginBottom: 12,
+    textAlign: "center",
+  },
   linkRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 8,
+    marginTop: 4,
   },
   linkText: {
     fontSize: 13,
     color: "#2563eb",
     textDecorationLine: "underline",
     paddingHorizontal: 4,
-  },
-  linkDivider: {
-    width: 1,
-    height: 12,
-    backgroundColor: "#ddd",
-    marginHorizontal: 4,
   },
   label: {
     fontSize: 14,

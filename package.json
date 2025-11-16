@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "~2.2.0",
+    "@react-native-community/datetimepicker": "8.4.4",
     "@reduxjs/toolkit": "^2.2.3",
     "@supabase/supabase-js": "^2.46.1",
     "expo": "~54.0.23",
@@ -38,7 +39,6 @@
   },
   "expo": {
     "scheme": "uconnect",
-
     "android": {
       "permissions": [
         "READ_MEDIA_IMAGES",
@@ -54,7 +54,10 @@
               "host": "*"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
