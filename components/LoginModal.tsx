@@ -24,14 +24,22 @@ const GUEST_COLOR = "#6b7280";
 export default function LoginModal({ visible, onClose }: Props) {
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
-  const [role, setRole] = useState<"student" | "organizer">("student");
+  const [role, setRole] = useState<"student" | "organizer" | null>(null);
+  const [registerMode, setRegisterMode] = useState(false); // false = Login, true = Register
+  const [showRoleOptions, setShowRoleOptions] = useState(false);
+
   const dispatch = useAppDispatch();
 
-  // Read theme
+  // theme
   const theme = useAppSelector((state) => state.theme.theme);
   const isDark = theme === "dark";
 
-  const primaryColor = role === "student" ? STUDENT_COLOR : ORGANIZER_COLOR;
+  const primaryColor =
+    role === "student"
+      ? STUDENT_COLOR
+      : role === "organizer"
+      ? ORGANIZER_COLOR
+      : ORGANIZER_COLOR; 
 
   // ---- LOGIN ----
   const onLogin = async () => {
@@ -87,6 +95,14 @@ export default function LoginModal({ visible, onClose }: Props) {
       return;
     }
 
+    if (!role) {
+      Alert.alert(
+        "Missing role",
+        "Please select your role (Student or Organizer) before registering."
+      );
+      return;
+    }
+
     try {
       const result = await dispatch(
         signupUser({ email, password: pwd, role })
@@ -101,6 +117,19 @@ export default function LoginModal({ visible, onClose }: Props) {
     } catch (err: any) {
       Alert.alert("Sign-up failed", String(err));
     }
+  };
+
+  const onPressRegisterLink = () => {
+    setRegisterMode((prev) => {
+      const next = !prev;
+      if (next) {
+        setRole(null);
+        setShowRoleOptions(false);
+      } else {
+        setShowRoleOptions(false);
+      }
+      return next;
+    });
   };
 
   // ---- RESET PASSWORD ----
@@ -127,6 +156,7 @@ export default function LoginModal({ visible, onClose }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade">
       <SafeAreaView style={styles.safeArea}>
+        {/* backdrop */}
         <Pressable
           style={[
             styles.backdrop,
@@ -154,64 +184,10 @@ export default function LoginModal({ visible, onClose }: Props) {
               { color: isDark ? "#E5E7EB" : "#111827" },
             ]}
           >
-            Login / Register
+            {registerMode ? "Register" : "Login"}
           </Text>
 
-          {/* Role select area */}
-          <View style={styles.roleRow}>
-            <Pressable
-              onPress={() => setRole("student")}
-              style={[
-                styles.roleChip,
-                {
-                  backgroundColor: isDark ? "#020617" : "#ffffff",
-                  borderColor: isDark ? "#4B5563" : "#d0d0d0",
-                },
-                role === "student" && styles.roleChipStudentActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.roleChipText,
-                  { color: isDark ? "#E5E7EB" : "#555" },
-                  role === "student" && styles.roleChipTextActive,
-                ]}
-              >
-                Student
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setRole("organizer")}
-              style={[
-                styles.roleChip,
-                {
-                  backgroundColor: isDark ? "#020617" : "#ffffff",
-                  borderColor: isDark ? "#4B5563" : "#d0d0d0",
-                },
-                role === "organizer" && styles.roleChipOrganizerActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.roleChipText,
-                  { color: isDark ? "#E5E7EB" : "#555" },
-                  role === "organizer" && styles.roleChipTextActive,
-                ]}
-              >
-                Organizer
-              </Text>
-            </Pressable>
-          </View>
-          <Text
-            style={[
-              styles.roleHint,
-              { color: isDark ? "#9CA3AF" : "#6b7280" },
-            ]}
-          >
-            Role will be locked for this email after registration.
-          </Text>
-
-          {/* input area */}
+          {/* Email */}
           <Text
             style={[
               styles.label,
@@ -237,6 +213,7 @@ export default function LoginModal({ visible, onClose }: Props) {
             keyboardType="email-address"
           />
 
+          {/* Password */}
           <Text
             style={[
               styles.label,
@@ -261,16 +238,125 @@ export default function LoginModal({ visible, onClose }: Props) {
             secureTextEntry
           />
 
-          {/* The color changes with the role */}
-          <AppButton title="Login" onPress={onLogin} color={primaryColor} />
+          {registerMode && (
+            <View style={{ marginBottom: 12 }}>
+              <Text
+                style={[
+                  styles.label,
+                  { color: isDark ? "#E5E7EB" : "#333" },
+                ]}
+              >
+                Role
+              </Text>
+
+              <Pressable
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: isDark ? "#020617" : "#f7f7f7",
+                    borderColor: isDark ? "#4B5563" : "#e1e1e1",
+                  },
+                ]}
+                onPress={() => setShowRoleOptions((prev) => !prev)}
+              >
+                <Text
+                  style={{
+                    color: role
+                      ? isDark
+                        ? "#E5E7EB"
+                        : "#111827"
+                      : isDark
+                      ? "#6B7280"
+                      : "#9CA3AF",
+                  }}
+                >
+                  {role
+                    ? role === "student"
+                      ? "Student"
+                      : "Organizer"
+                    : "Select role"}
+                </Text>
+              </Pressable>
+
+              {showRoleOptions && (
+                <View
+                  style={[
+                    styles.dropdown,
+                    {
+                      backgroundColor: isDark ? "#020617" : "#ffffff",
+                      borderColor: isDark ? "#4B5563" : "#e1e1e1",
+                    },
+                  ]}
+                >
+                  <Pressable
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setRole("student");
+                      setShowRoleOptions(false);
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: isDark ? "#E5E7EB" : "#111827",
+                      }}
+                    >
+                      Student
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      setRole("organizer");
+                      setShowRoleOptions(false);
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: isDark ? "#E5E7EB" : "#111827",
+                      }}
+                    >
+                      Organizer
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
+
+              <Text
+                style={[
+                  styles.roleHint,
+                  { color: isDark ? "#9CA3AF" : "#6b7280" },
+                ]}
+              >
+                Role will be locked for this email after registration.
+              </Text>
+            </View>
+          )}
+
           <AppButton
-            title="Register"
-            onPress={onRegister}
+            title={registerMode ? "Register" : "Login"}
+            onPress={registerMode ? onRegister : onLogin}
             color={primaryColor}
           />
 
-          {/* Reset password */}
           <View style={styles.linkRow}>
+            <Pressable onPress={onPressRegisterLink}>
+              <Text
+                style={[
+                  styles.linkText,
+                  { color: isDark ? "#60A5FA" : "#2563eb" },
+                ]}
+              >
+                {registerMode ? "Back to Login" : "Switch to Register"}
+              </Text>
+            </Pressable>
+
+            <View
+              style={[
+                styles.linkDivider,
+                { backgroundColor: isDark ? "#4B5563" : "#D1D5DB" },
+              ]}
+            />
+
             <Pressable onPress={onResetPassword}>
               <Text
                 style={[
@@ -283,7 +369,7 @@ export default function LoginModal({ visible, onClose }: Props) {
             </Pressable>
           </View>
 
-          {/* Guest*/}
+          {/* Guest */}
           <AppButton
             title="Continue as guest"
             onPress={onContinueAsGuest}
@@ -330,39 +416,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     fontSize: 14,
   },
-  roleRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  roleChip: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 999,
-    borderWidth: 1,
-    alignItems: "center",
-    marginHorizontal: 4,
-  },
-
-  // Different roles activate their respective styles.
-  roleChipStudentActive: {
-    backgroundColor: STUDENT_COLOR,
-    borderColor: STUDENT_COLOR,
-  },
-  roleChipOrganizerActive: {
-    backgroundColor: ORGANIZER_COLOR,
-    borderColor: ORGANIZER_COLOR,
-  },
-  roleChipText: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  roleChipTextActive: {
-    color: "#ffffff",
-  },
   roleHint: {
     fontSize: 11,
-    marginBottom: 12,
+    marginTop: 4,
+    marginBottom: 8,
     textAlign: "center",
   },
   linkRow: {
@@ -377,9 +434,24 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
     paddingHorizontal: 4,
   },
+  linkDivider: {
+    width: 1,
+    height: 14,
+    marginHorizontal: 6,
+  },
   label: {
     fontSize: 14,
     fontWeight: "500",
     marginBottom: 4,
+  },
+  dropdown: {
+    borderWidth: 1,
+    borderRadius: 10,
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
 });

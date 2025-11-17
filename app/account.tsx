@@ -47,9 +47,6 @@ export default function Account() {
 
   const onLogout = () => dispatch(logoutUser());
 
-  /* --------------------------------------------------------------
-     Pick + Upload Profile Photo
-  -------------------------------------------------------------- */
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       quality: 0.9,
@@ -75,9 +72,6 @@ export default function Account() {
     }
   };
 
-  /* --------------------------------------------------------------
-     Save username (from modal)
-  -------------------------------------------------------------- */
   const saveUsername = async () => {
     if (!usernameInput.trim()) return Alert.alert("Username required");
 
@@ -93,9 +87,6 @@ export default function Account() {
     }
   };
 
-  /* --------------------------------------------------------------
-     RESET PASSWORD (send email)
-  -------------------------------------------------------------- */
   const handleResetPassword = async () => {
     if (!user?.email) {
       Alert.alert("Missing email", "You must be logged in.");
@@ -118,9 +109,6 @@ export default function Account() {
     }
   };
 
-  /* --------------------------------------------------------------
-     Theme colors
-  -------------------------------------------------------------- */
   const bgColor = isDark ? "#020617" : "#F9FAFB";
   const cardBg = isDark ? "#0B1120" : "#FFFFFF";
   const mainText = isDark ? "#F9FAFB" : "#111827";
@@ -137,9 +125,6 @@ export default function Account() {
     ? "Click to switch to Light"
     : "Click to switch to Dark";
 
-  /* --------------------------------------------------------------
-     UI
-  -------------------------------------------------------------- */
   return (
     <View style={[styles.container, { backgroundColor: bgColor }]}>
       <Text style={[styles.title, { color: mainText }]}>Account</Text>
@@ -156,13 +141,43 @@ export default function Account() {
             <Text style={styles.buttonText}>Login / Register</Text>
           </Pressable>
 
+          <View
+            style={[
+              styles.infoCard,
+              {
+                backgroundColor: cardBg,
+                borderColor,
+                borderWidth: isDark ? 1 : 0,
+                shadowOpacity: isDark ? 0 : 0.05,
+                marginTop: 16,
+              },
+            ]}
+          >
+            <Text style={[styles.infoLabel, { color: secondaryText }]}>
+              Theme
+            </Text>
+            <View style={styles.themeRow}>
+              <Text style={[styles.infoValue, { color: mainText }]}>
+                {themeDisplay}
+              </Text>
+              <Pressable
+                style={[
+                  styles.themeButton,
+                  { backgroundColor: isDark ? "#4B5563" : "#111827" },
+                ]}
+                onPress={onToggleTheme}
+              >
+                <Text style={styles.themeButtonText}>{themeButtonLabel}</Text>
+              </Pressable>
+            </View>
+          </View>
+
           <LoginModal visible={showLogin} onClose={() => setShowLogin(false)} />
         </>
       )}
 
       {user && (
         <>
-          {/* Avatar & photo hint */}
           <View style={styles.profileHeader}>
             <Pressable onPress={pickPhoto} disabled={saving}>
               {saving ? (
@@ -183,7 +198,6 @@ export default function Account() {
             </Text>
           </View>
 
-          {/* Info card */}
           <View
             style={[
               styles.infoCard,
@@ -195,7 +209,6 @@ export default function Account() {
               },
             ]}
           >
-            {/* Username + Edit */}
             <View style={styles.row}>
               <Text style={[styles.label, { color: mainText }]}>Username</Text>
               <Pressable onPress={() => setEditVisible(true)}>
@@ -206,7 +219,6 @@ export default function Account() {
               {usernameInStore}
             </Text>
 
-            {/* Email */}
             <Text style={[styles.infoLabel, { color: secondaryText }]}>
               Email
             </Text>
@@ -214,13 +226,11 @@ export default function Account() {
               {user.email}
             </Text>
 
-            {/* Role */}
             <Text style={[styles.infoLabel, { color: secondaryText }]}>
               Role
             </Text>
             <Text style={[styles.infoValue, { color: mainText }]}>{role}</Text>
 
-            {/* Theme */}
             <Text
               style={[
                 styles.infoLabel,
@@ -248,7 +258,6 @@ export default function Account() {
             </View>
           </View>
 
-          {/* Logout */}
           <Pressable
             style={[styles.button, styles.logoutButton]}
             onPress={onLogout}
@@ -269,9 +278,6 @@ export default function Account() {
         </>
       )}
 
-      {/* ----------------------------------------------------------
-          Username Edit Modal
-      ----------------------------------------------------------- */}
       <Modal visible={editVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View
@@ -328,9 +334,6 @@ export default function Account() {
   );
 }
 
-/* --------------------------------------------------------------
-   STYLES
--------------------------------------------------------------- */
 const styles = StyleSheet.create({
   container: { flex: 1, paddingTop: 56, paddingHorizontal: 16 },
   title: { fontSize: 24, fontWeight: "700", marginBottom: 16 },
@@ -435,7 +438,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
-  /* Modal */
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.4)",
