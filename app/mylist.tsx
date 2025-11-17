@@ -162,9 +162,13 @@ export default function MyListScreen() {
             { color: isDark ? "#9CA3AF" : "#777777" },
           ]}
         >
-          {role === "student"
-            ? "You haven't registered for any activities yet."
-            : "You haven't created any activities yet."}
+          {
+            role === "student"
+              ? "You haven't registered for any activities yet."
+              : role === "organizer"
+                ? "You haven't created any activities yet."
+                : "Please login for more information."
+          }
         </Text>
 
         {/* Organizer create button */}

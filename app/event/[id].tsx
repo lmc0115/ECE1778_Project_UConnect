@@ -254,7 +254,7 @@ export default function EventDetails() {
           <View style={{ marginTop: 16 }}>
             {!authed ? (
               <AppButton
-                title="Login to Register"
+                title="Login/Register"
                 onPress={() => setLoginVisible(true)}
               />
             ) : regStatusLoading ? (
