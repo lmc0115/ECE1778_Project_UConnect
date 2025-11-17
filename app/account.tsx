@@ -272,7 +272,7 @@ export default function Account() {
                 { color: hintBlue, textAlign: "center" },
               ]}
             >
-              Forgot Password?
+              Reset Password
             </Text>
           </Pressable>
         </>
