@@ -4,11 +4,29 @@ import { Provider } from "react-redux";
 import { useEffect } from "react";
 import * as Linking from "expo-linking";
 import { Ionicons } from "@expo/vector-icons";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import { Platform } from "react-native";
 
 import { store } from "../store/store";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setTheme } from "../store/slices/themeSlice";
 import { loadTheme } from "../lib/themeStorage";
+import {
+  saveExpoPushToken,
+  selectExpoPushToken,
+  selectUser,
+} from "../store/slices/userSlice";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
 
 const linking = {
   prefixes: ["uconnect://"],
@@ -25,6 +43,8 @@ const linking = {
 function ThemedTabs() {
   const dispatch = useAppDispatch();
   const theme = useAppSelector((state) => state.theme.theme);
+  const expoPushToken = useAppSelector(selectExpoPushToken);
+  const user = useAppSelector(selectUser);
   const isDark = theme === "dark";
 
   useEffect(() => {
@@ -35,6 +55,49 @@ function ThemedTabs() {
       }
     })();
   }, [dispatch]);
+
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+
+    const setupNotifications = async () => {
+      try {
+        if (Platform.OS === "android") {
+          await Notifications.setNotificationChannelAsync("default", {
+            name: "default",
+            importance: Notifications.AndroidImportance.MAX,
+          });
+        }
+
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+        if (existingStatus !== "granted") {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus !== "granted") {
+          return;
+        }
+
+        const projectId =
+          Constants?.expoConfig?.extra?.eas?.projectId ??
+          Constants?.easConfig?.projectId;
+
+        const tokenResponse = await Notifications.getExpoPushTokenAsync(
+          projectId ? { projectId } : undefined
+        );
+
+        const token = tokenResponse.data;
+        if (token && user?.id && token !== expoPushToken) {
+          dispatch(saveExpoPushToken(token));
+        }
+      } catch (err) {
+        console.warn("Notification setup failed", err);
+      }
+    };
+
+    setupNotifications();
+  }, [dispatch, expoPushToken, user?.id]);
 
   return (
     <Tabs

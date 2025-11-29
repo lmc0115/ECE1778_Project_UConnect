@@ -1,4 +1,127 @@
 import { supabase } from "./supabase";
+import * as Notifications from "expo-notifications";
+import { Platform } from "react-native";
+
+function normalizeStartTime(raw?: string | null) {
+  if (!raw) return "";
+  if (raw.length === 5) return `${raw}:00`;
+  return raw;
+}
+
+/* ============================================================
+   LOCAL REMINDER HELPERS (PER ACTIVITY)
+   ============================================================ */
+async function scheduleLocalReminder(
+  activityId: string,
+  date: string,
+  startTime: string,
+  title: string,
+  body: string
+) {
+  if (!date || !startTime) return;
+
+  const normalizedTime = normalizeStartTime(startTime);
+  const start = new Date(`${date}T${normalizedTime}`);
+  if (isNaN(start.getTime())) return;
+
+  const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
+
+  const diffSeconds = Math.floor(
+    (reminderTime.getTime() - Date.now()) / 1000
+  );
+  if (diffSeconds <= 0) return;
+
+  const trigger: Notifications.TimeIntervalTriggerInput = {
+    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+    seconds: diffSeconds,
+  };
+
+  if (Platform.OS === "android") {
+    trigger.channelId = "default";
+  }
+
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+      data: { activityId },
+      sound: "default",
+    },
+    trigger,
+  });
+}
+
+async function cancelLocalReminderForActivity(activityId: string) {
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+
+  for (const item of scheduled) {
+    const data: any = item.content.data;
+    if (data && data.activityId === activityId) {
+      await Notifications.cancelScheduledNotificationAsync(item.identifier);
+    }
+  }
+}
+
+/* ============================================================
+   PUSH NOTIFICATION HELPERS
+   ============================================================ */
+async function sendPush(token: string, title: string, body: string) {
+  if (!token) return;
+
+  await fetch("https://exp.host/--/api/v2/push/send", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      to: token,
+      sound: "default",
+      title,
+      body,
+    }),
+  });
+}
+
+async function getPushTokenForUser(userId: string | null | undefined) {
+  if (!userId) return null;
+
+  const { data } = await supabase
+    .from("profiles")
+    .select("expo_push_token")
+    .eq("id", userId)
+    .maybeSingle();
+
+  return data?.expo_push_token ?? null;
+}
+
+async function getRegisteredStudentTokens(activityId: string) {
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("user_id")
+    .eq("activity_id", activityId);
+
+  if (!regs || regs.length === 0) return [];
+
+  const userIds = regs.map((reg) => reg.user_id);
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, expo_push_token")
+    .in("id", userIds);
+
+  if (!profiles) return [];
+
+  return profiles
+    .map((profile: any) => profile.expo_push_token)
+    .filter((token: string | null) => Boolean(token)) as string[];
+}
+
+async function countRegistrations(activityId: string) {
+  const { data: regs } = await supabase
+    .from("registrations")
+    .select("id")
+    .eq("activity_id", activityId);
+
+  return regs?.length ?? 0;
+}
 
 /* ============================================================
    IMAGE UPLOAD — RETURN PUBLIC URL
@@ -54,19 +177,45 @@ export async function createActivity({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data, error } = await supabase.from("activities").insert([
-    {
-      title,
-      date,
-      start_time,
-      location,
-      introduction,
-      image_urls,
-      organizer_id: user?.id ?? null,
-    },
-  ]);
+  const { data, error } = await supabase
+    .from("activities")
+    .insert([
+      {
+        title,
+        date,
+        start_time,
+        location,
+        introduction,
+        image_urls,
+        organizer_id: user?.id ?? null,
+      },
+    ])
+    .select()
+    .single();
 
   if (error) throw error;
+  const created = data;
+
+  if (created && created.id && created.date && created.start_time) {
+    await scheduleLocalReminder(
+      String(created.id),
+      created.date,
+      normalizeStartTime(created.start_time),
+      "Activity Reminder",
+      `Your activity "${created.title}" starts in 30 minutes.`
+    );
+  }
+
+  if (created) {
+    const organizerToken = await getPushTokenForUser(created.organizer_id);
+    if (organizerToken) {
+      await sendPush(
+        organizerToken,
+        "Activity Created",
+        `You successfully created activity: "${created.title}".`
+      );
+    }
+  }
   return data;
 }
 
@@ -104,9 +253,43 @@ export async function updateActivity(id: string, payload: any) {
   const { data, error } = await supabase
     .from("activities")
     .update(payload)
-    .eq("id", id);
+    .eq("id", id)
+    .select()
+    .single();
 
   if (error) throw error;
+
+  if (data) {
+    const organizerToken = await getPushTokenForUser(data.organizer_id);
+    if (organizerToken) {
+      await sendPush(
+        organizerToken,
+        "Activity Updated",
+        `You successfully modified activity: "${data.title}".`
+      );
+    }
+
+    const studentTokens = await getRegisteredStudentTokens(String(data.id));
+    for (const token of studentTokens) {
+      await sendPush(
+        token,
+        "Activity Updated",
+        `"${data.title}" has been updated. Please check the details.`
+      );
+    }
+
+    if (data.date && data.start_time) {
+      await cancelLocalReminderForActivity(String(data.id));
+      await scheduleLocalReminder(
+        String(data.id),
+        data.date,
+        normalizeStartTime(data.start_time),
+        "Activity Reminder",
+        `Your activity "${data.title}" starts in 30 minutes.`
+      );
+    }
+  }
+
   return data;
 }
 
@@ -148,7 +331,42 @@ export async function registerForActivity(activityId: string) {
   }
 
   if (error) throw error;
+  const activity = await fetchActivityById(activityId);
 
+  if (activity && activity.id && activity.date && activity.start_time) {
+    await cancelLocalReminderForActivity(activityId);
+    await scheduleLocalReminder(
+      String(activity.id),
+      activity.date,
+      normalizeStartTime(activity.start_time),
+      "Activity Reminder",
+      `Your registered activity "${activity.title}" starts in 30 minutes.`
+    );
+  }
+
+  if (activity && user.id) {
+    const studentToken = await getPushTokenForUser(user.id);
+    if (studentToken) {
+      await sendPush(
+        studentToken,
+        "Registration Confirmed",
+        `You successfully registered for "${activity.title}".`
+      );
+    }
+  }
+
+  const total = await countRegistrations(activityId);
+
+  if (activity && activity.organizer_id) {
+    const organizerToken = await getPushTokenForUser(activity.organizer_id);
+    if (organizerToken) {
+      await sendPush(
+        organizerToken,
+        "New Registration",
+        `A new student registered for "${activity.title}". Total registered: ${total}.`
+      );
+    }
+  }
   return { alreadyRegistered: false };
 }
 
@@ -168,7 +386,22 @@ export async function cancelRegistration(activityId: string) {
     .eq("activity_id", activityId);
 
   if (error) throw error;
+  await cancelLocalReminderForActivity(activityId);
 
+  const activity = await fetchActivityById(activityId);
+
+  const total = await countRegistrations(activityId);
+
+  if (activity && activity.organizer_id) {
+    const organizerToken = await getPushTokenForUser(activity.organizer_id);
+    if (organizerToken) {
+      await sendPush(
+        organizerToken,
+        "Registration Cancelled",
+        `A student cancelled registration for "${activity.title}". Total registered: ${total}.`
+      );
+    }
+  }
   return true;
 }
 
