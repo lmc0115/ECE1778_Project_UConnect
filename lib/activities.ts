@@ -8,6 +8,21 @@ function normalizeStartTime(raw?: string | null) {
   return raw;
 }
 
+function buildLocalDate(dateStr: string, timeStr: string) {
+  const [year, month, day] = dateStr.split("-").map((part) => Number(part) || 0);
+  const [hour, minute, second = "00"] = timeStr.split(":");
+
+  return new Date(
+    year,
+    (month || 1) - 1,
+    day || 1,
+    Number(hour) || 0,
+    Number(minute) || 0,
+    Number(second) || 0,
+    0
+  );
+}
+
 /* ============================================================
    LOCAL REMINDER HELPERS (PER ACTIVITY)
    ============================================================ */
@@ -21,26 +36,27 @@ async function scheduleLocalReminder(
   if (!date || !startTime) return;
 
   const normalizedTime = normalizeStartTime(startTime);
-  const start = new Date(`${date}T${normalizedTime}`);
+  const start = buildLocalDate(date, normalizedTime);
   if (isNaN(start.getTime())) return;
 
   const reminderTime = new Date(start.getTime() - 30 * 60 * 1000);
+  if (reminderTime.getTime() <= Date.now()) return;
 
-  const diffSeconds = Math.floor(
-    (reminderTime.getTime() - Date.now()) / 1000
-  );
-  if (diffSeconds <= 0) return;
-
-  const trigger: Notifications.TimeIntervalTriggerInput = {
-    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-    seconds: diffSeconds,
+  const trigger: Notifications.CalendarTriggerInput = {
+    type: Notifications.SchedulableTriggerInputTypes.CALENDAR,
+    year: reminderTime.getFullYear(),
+    month: reminderTime.getMonth() + 1,
+    day: reminderTime.getDate(),
+    hour: reminderTime.getHours(),
+    minute: reminderTime.getMinutes(),
+    second: reminderTime.getSeconds(),
   };
 
   if (Platform.OS === "android") {
     trigger.channelId = "default";
   }
 
-  await Notifications.scheduleNotificationAsync({
+  const identifier = await Notifications.scheduleNotificationAsync({
     content: {
       title,
       body,
@@ -49,17 +65,31 @@ async function scheduleLocalReminder(
     },
     trigger,
   });
+
+  if (__DEV__) {
+    console.log("Scheduled local reminder", {
+      activityId,
+      fireAt: reminderTime.toISOString(),
+      id: identifier,
+    });
+  }
 }
 
 async function cancelLocalReminderForActivity(activityId: string) {
-  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
 
-  for (const item of scheduled) {
-    const data: any = item.content.data;
-    if (data && data.activityId === activityId) {
-      await Notifications.cancelScheduledNotificationAsync(item.identifier);
+    for (const item of scheduled) {
+        const data: any = item.content.data;
+        if (data && data.activityId === activityId) {
+            await Notifications.cancelScheduledNotificationAsync(item.identifier);
+      if (__DEV__) {
+        console.log("Cancelled local reminder", {
+          activityId,
+          id: item.identifier,
+        });
+      }
+        }
     }
-  }
 }
 
 /* ============================================================
@@ -68,44 +98,63 @@ async function cancelLocalReminderForActivity(activityId: string) {
 async function sendPush(token: string, title: string, body: string) {
   if (!token) return;
 
-  await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: token,
-      sound: "default",
-      title,
-      body,
-    }),
-  });
+  try {
+    await fetch("https://exp.host/--/api/v2/push/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to: token,
+        sound: "default",
+        title,
+        body,
+      }),
+    });
+  } catch (err) {
+    console.warn("sendPush failed:", err);
+  }
 }
 
 async function getPushTokenForUser(userId: string | null | undefined) {
   if (!userId) return null;
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("expo_push_token")
     .eq("id", userId)
     .maybeSingle();
 
+  if (error) {
+    console.warn("getPushTokenForUser error:", error.message);
+    return null;
+  }
+
   return data?.expo_push_token ?? null;
 }
 
 async function getRegisteredStudentTokens(activityId: string) {
-  const { data: regs } = await supabase
+  const { data: regs, error: regError } = await supabase
     .from("registrations")
     .select("user_id")
     .eq("activity_id", activityId);
+
+  if (regError) {
+    console.warn("getRegisteredStudentTokens (registrations) error:", regError.message);
+    return [];
+  }
 
   if (!regs || regs.length === 0) return [];
 
   const userIds = regs.map((reg) => reg.user_id);
 
-  const { data: profiles } = await supabase
+  const { data: profiles, error: profileError } = await supabase
     .from("profiles")
     .select("id, expo_push_token")
     .in("id", userIds);
+
+  if (profileError) {
+    console.warn("getRegisteredStudentTokens (profiles) error:", profileError.message);
+    return [];
+  }
 
   if (!profiles) return [];
 
@@ -180,15 +229,15 @@ export async function createActivity({
   const { data, error } = await supabase
     .from("activities")
     .insert([
-      {
-        title,
-        date,
-        start_time,
-        location,
-        introduction,
-        image_urls,
-        organizer_id: user?.id ?? null,
-      },
+    {
+      title,
+      date,
+      start_time,
+      location,
+      introduction,
+      image_urls,
+      organizer_id: user?.id ?? null,
+    },
     ])
     .select()
     .single();
@@ -197,25 +246,25 @@ export async function createActivity({
   const created = data;
 
   if (created && created.id && created.date && created.start_time) {
-    await scheduleLocalReminder(
-      String(created.id),
-      created.date,
+        await scheduleLocalReminder(
+            String(created.id),
+            created.date,
       normalizeStartTime(created.start_time),
-      "Activity Reminder",
-      `Your activity "${created.title}" starts in 30 minutes.`
-    );
-  }
+            "Activity Reminder",
+            `Your activity "${created.title}" starts in 30 minutes.`
+        );
+    }
 
   if (created) {
     const organizerToken = await getPushTokenForUser(created.organizer_id);
-    if (organizerToken) {
-      await sendPush(
-        organizerToken,
-        "Activity Created",
+        if (organizerToken) {
+            await sendPush(
+                organizerToken,
+                "Activity Created",
         `You successfully created activity: "${created.title}".`
-      );
+            );
+        }
     }
-  }
   return data;
 }
 
@@ -271,12 +320,12 @@ export async function updateActivity(id: string, payload: any) {
 
     const studentTokens = await getRegisteredStudentTokens(String(data.id));
     for (const token of studentTokens) {
-      await sendPush(
+          await sendPush(
         token,
         "Activity Updated",
         `"${data.title}" has been updated. Please check the details.`
-      );
-    }
+          );
+        }
 
     if (data.date && data.start_time) {
       await cancelLocalReminderForActivity(String(data.id));
@@ -399,6 +448,17 @@ export async function cancelRegistration(activityId: string) {
         organizerToken,
         "Registration Cancelled",
         `A student cancelled registration for "${activity.title}". Total registered: ${total}.`
+      );
+    }
+  }
+
+  if (user.id) {
+    const studentToken = await getPushTokenForUser(user.id);
+    if (studentToken) {
+      await sendPush(
+        studentToken,
+        "Registration Cancelled",
+        `You cancelled your registration for "${activity?.title ?? "this activity"}".`
       );
     }
   }
