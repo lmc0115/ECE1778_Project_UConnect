@@ -15,7 +15,7 @@ export default function ImageModal({ visible, url, onClose }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const saveImage = async () => {
+  /* const saveImage = async () => {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== "granted") {
@@ -32,7 +32,7 @@ export default function ImageModal({ visible, url, onClose }) {
       setSaving(false);
       Alert.alert("Error", err.message);
     }
-  };
+  }; */
 
   return (
     <Modal visible={visible} transparent animationType="fade">
@@ -55,9 +55,9 @@ export default function ImageModal({ visible, url, onClose }) {
         {loading && <ActivityIndicator size="large" color="#fff" />}
 
         {/* Save Button */}
-        <Pressable style={styles.saveBtn} onPress={saveImage}>
+        {/* <Pressable style={styles.saveBtn} onPress={saveImage}>
           <Text style={styles.saveText}>{saving ? "Saving..." : "Save Image"}</Text>
-        </Pressable>
+        </Pressable> */}
 
       </View>
     </Modal>

@@ -1,20 +1,47 @@
 import { View, Text, TextInput, Pressable, Alert, StyleSheet } from "react-native";
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useRouter } from "expo-router";
+import { useAppDispatch } from "../store/hooks";
+import { logoutUser } from "../store/slices/userSlice";
 
 export default function ResetPassword() {
   const [password, setPassword] = useState("");
+  const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const handleReset = async () => {
-    if (!password.trim()) return Alert.alert("Enter a password");
+    if (!password.trim()) {
+      return Alert.alert("Missing password", "Please enter a new password.");
+    }
 
-    const { error } = await supabase.auth.updateUser({
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
 
-    if (error) return Alert.alert("Error", error.message);
+      if (error) {
+        throw error;
+      }
 
-    Alert.alert("Success", "Your password has been reset!");
+      // Sign out from Supabase and clear Redux user state
+      await supabase.auth.signOut();
+      dispatch(logoutUser());
+
+      Alert.alert(
+        "Success",
+        "Your password has been reset. Please log in again with your new password.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Send them back to Account tab (where your login UI lives)
+              router.replace("/account");
+            },
+          },
+        ]
+      );
+    } catch (err: any) {
+      Alert.alert("Error", err.message ?? "Failed to reset password.");
+    }
   };
 
   return (

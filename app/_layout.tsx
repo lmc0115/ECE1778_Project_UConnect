@@ -92,18 +92,7 @@ function ThemedTabs() {
           href: null,
         }}
       />
-      <Tabs.Screen
-        name="calendar"
-        options={{
-          href: null,
-        }}
-      />
-      <Tabs.Screen
-        name="organizer/create"
-        options={{
-          href: null,
-        }}
-      />
+      
       <Tabs.Screen
         name="event/[id]"
         options={{
