@@ -22,60 +22,9 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { triggerRefresh } from "../../store/slices/activityRefreshSlice";
-import * as Notifications from "expo-notifications";
-import { supabase } from "../../lib/supabase";
 
 import DateTimePicker from "@react-native-community/datetimepicker";
 import AppButton from "../../components/AppButton";
-
-/* -------------------------------------------------------------
-   Helper: Push notification sender
-------------------------------------------------------------- */
-async function sendPush(token: string, title: string, body: string) {
-  if (!token) return;
-
-  await fetch("https://exp.host/--/api/v2/push/send", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      to: token,
-      sound: "default",
-      title,
-      body,
-    }),
-  });
-}
-
-/* -------------------------------------------------------------
-   Fetch tokens: organizer + all students
-------------------------------------------------------------- */
-async function getRegisteredStudentTokens(activityId: string) {
-  const { data: regs } = await supabase
-    .from("registrations")
-    .select("user_id")
-    .eq("activity_id", activityId);
-
-  if (!regs || regs.length === 0) return [];
-
-  const ids = regs.map((r) => r.user_id);
-
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("expo_push_token")
-    .in("id", ids);
-
-  return profiles.map((p) => p.expo_push_token).filter((t) => Boolean(t));
-}
-
-async function getOrganizerToken(organizerId: string) {
-  const { data } = await supabase
-    .from("profiles")
-    .select("expo_push_token")
-    .eq("id", organizerId)
-    .maybeSingle();
-
-  return data?.expo_push_token ?? null;
-}
 
 function parseDateString(dateStr?: string | null) {
   if (!dateStr) return new Date();
@@ -248,24 +197,6 @@ export default function CreateOrEditActivity() {
 
         dispatch(triggerRefresh());
 
-        const organizerToken = await getOrganizerToken(initialData.organizer_id);
-        if (organizerToken) {
-          await sendPush(
-            organizerToken,
-            "Activity Updated",
-            `You successfully updated "${title}".`
-          );
-        }
-
-        const studentTokens = await getRegisteredStudentTokens(id!);
-        for (const token of studentTokens) {
-          await sendPush(
-            token,
-            "Activity Updated",
-            `The activity "${title}" was updated. Please check the details.`
-          );
-        }
-
         Alert.alert("Updated!", "Activity updated successfully.");
       } else {
         await createActivity({
@@ -275,7 +206,6 @@ export default function CreateOrEditActivity() {
           location,
           introduction: intro,
           image_urls: images,
-          organizer_id: user.id,
         });
 
         dispatch(triggerRefresh());
@@ -401,12 +331,18 @@ export default function CreateOrEditActivity() {
         <AppButton
           title={editing ? "Update Activity" : "Create Activity"}
           onPress={onSubmit}
+          disabled={false}
         />
       </View>
 
       {/* Cancel */}
       <View style={{ marginTop: 8 }}>
-        <AppButton title="Cancel" onPress={handleCancel} color="#9CA3AF" />
+        <AppButton
+          title="Cancel"
+          onPress={handleCancel}
+          color="#9CA3AF"
+          disabled={false}
+        />
       </View>
 
       {/* iOS pickers with themed box */}
