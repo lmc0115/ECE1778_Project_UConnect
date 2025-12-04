@@ -10,17 +10,6 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setTheme } from "../store/slices/themeSlice";
 import { loadTheme } from "../lib/themeStorage";
 
-const linking = {
-  prefixes: ["uconnect://"],
-  config: {
-    screens: {
-      index: "",
-      mylist: "mylist",
-      account: "account",
-      resetPassword: "reset-password",
-    },
-  },
-};
 
 function ThemedTabs() {
   const dispatch = useAppDispatch();
@@ -51,7 +40,6 @@ function ThemedTabs() {
           marginBottom: 4,
         },
       }}
-      linking={linking}
     >
       {/* Activity tab */}
       <Tabs.Screen
@@ -95,6 +83,13 @@ function ThemedTabs() {
       
       <Tabs.Screen
         name="event/[id]"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="organizer/create"
         options={{
           href: null,
         }}
