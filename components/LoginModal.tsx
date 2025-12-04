@@ -90,34 +90,41 @@ export default function LoginModal({ visible, onClose }: Props) {
 
   // ---- REGISTER ----
   const onRegister = async () => {
-    if (!email || !pwd) {
-      Alert.alert("Missing info", "Please enter both email and password.");
-      return;
-    }
+  if (!email || !pwd) {
+    Alert.alert("Missing info", "Please enter both email and password.");
+    return;
+  }
 
-    if (!role) {
-      Alert.alert(
-        "Missing role",
-        "Please select your role (Student or Organizer) before registering."
-      );
-      return;
-    }
+  if (!role) {
+    Alert.alert(
+      "Missing role",
+      "Please select your role (Student or Organizer) before registering."
+    );
+    return;
+  }
 
-    try {
-      const result = await dispatch(
-        signupUser({ email, password: pwd, role })
-      ).unwrap();
-      console.log("Registered:", result.email, "Role:", role);
+  try {
+    await dispatch(
+      signupUser({ email, password: pwd, role })
+    ).unwrap();
 
-      Alert.alert(
-        "Registration successful!",
-        "We've sent a confirmation link to your email.\nPlease verify your account before logging in."
-      );
-      onClose();
-    } catch (err: any) {
-      Alert.alert("Sign-up failed", String(err));
-    }
-  };
+    Alert.alert(
+      "Registration successful",
+      "We’ve sent a verification link to your email.\n\n" +
+        "Please confirm your email before trying to sign in."
+    );
+
+    // Clear the form
+    setEmail("");
+    setPwd("");
+    setRole(null);
+
+    // Optional: close modal or switch to Login tab
+    onClose?.();
+  } catch (err: any) {
+    Alert.alert("Sign-up failed", String(err));
+  }
+};
 
   const onPressRegisterLink = () => {
     setRegisterMode((prev) => {
@@ -350,23 +357,7 @@ export default function LoginModal({ visible, onClose }: Props) {
               </Text>
             </Pressable>
 
-            <View
-              style={[
-                styles.linkDivider,
-                { backgroundColor: isDark ? "#4B5563" : "#D1D5DB" },
-              ]}
-            />
-
-            <Pressable onPress={onResetPassword}>
-              <Text
-                style={[
-                  styles.linkText,
-                  { color: isDark ? "#60A5FA" : "#2563eb" },
-                ]}
-              >
-                Reset password
-              </Text>
-            </Pressable>
+            
           </View>
 
           {/* Guest */}

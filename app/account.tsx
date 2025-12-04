@@ -100,6 +100,9 @@ export default function Account() {
 
       if (error) throw error;
 
+      // 🔐 sign out after requesting reset
+      //await dispatch(logoutUser()).unwrap();
+
       Alert.alert(
         "Check your email",
         "We sent a password reset link to your inbox."

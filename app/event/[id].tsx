@@ -277,20 +277,23 @@ export default function EventDetails() {
           </View>
         )}
 
-        {/* ORGANIZER EDIT */}
-        {role === "organizer" && (
-          <View style={{ marginTop: 12 }}>
-            <AppButton
-              title="Edit Activity"
-              onPress={() =>
-                router.push({
-                  pathname: "/organizer/create",
-                  params: { mode: "edit", id },
-                })
-              }
-            />
-          </View>
-        )}
+        {/* ORGANIZER EDIT – only show if this organizer owns the activity */}
+        {role === "organizer" &&
+          user &&
+          event.organizer_id === user.id && (
+            <View style={{ marginTop: 12 }}>
+              <AppButton
+                title="Edit Activity"
+                onPress={() =>
+                  router.push({
+                    pathname: "/organizer/create",
+                    params: { mode: "edit", id },
+                  })
+                }
+              />
+            </View>
+          )}
+
       </ScrollView>
 
       <ImageModal

@@ -242,12 +242,16 @@ const userSlice = createSlice({
 
       /* SIGNUP */
       .addCase(signupUser.fulfilled, (state, action) => {
-        state.user = action.payload.user;
-        state.role = action.payload.role;
-        state.username = action.payload.username;
-        state.avatar_url = action.payload.avatar_url;
-        state.expoPushToken = action.payload.expoPushToken ?? null;
+        // Signup succeeded, but user must verify email before logging in.
         state.status = "succeeded";
+        state.error = null;
+
+        // Do NOT treat them as logged in yet:
+        state.user = null;
+        state.role = null;
+        state.username = "";
+        state.avatar_url = null;
+        state.expoPushToken = null;
       })
 
       /* LOGOUT */
