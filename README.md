@@ -338,7 +338,7 @@ _To be completed later._
 
 ### Muchen Liu
 
-
+Implemented the core app functionality, including event creation and editing, Supabase integration, user authentication, event detail views, registration logic, My List state refresh, and push notification flow. Designed and wired up the overall app architecture and database queries using Expo Router and Supabase.
 
 ### Jerry Chen
 
