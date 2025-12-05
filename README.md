@@ -352,3 +352,20 @@ Spiro spearheaded the notification system by scheduling 30-minute local reminder
 
 
 
+---
+
+
+## Lessons Learned and Concluding Remarks
+
+Building UConnect gave our team hands-on experience with designing and shipping a real mobile app from end to end. We learned how important it is to plan a clear data model early, especially when supporting roles (student vs. organizer), registrations, and notifications. This project also clarified the boundary between Supabase as the single source of truth and Redux as UI/state glue, which made the architecture cleaner and easier to debug.
+
+Implementing role-based access (organizers can only edit their own events) and Expo push notifications taught us how real apps handle security, permissions, and asynchronous updates. We also experienced the very real difference between “it works in Expo Go” and “it works in a production build,” and learned to test on actual devices early.
+
+
+
+---
+
+
+## Video Demo
+
+Click the link here to watch the demo video.
