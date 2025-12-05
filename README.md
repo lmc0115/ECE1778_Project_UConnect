@@ -149,7 +149,8 @@ During registration, the user must:
 
 After submitting the form, the user will receive a verification email containing a confirmation link. They must open the link to complete their account activation. Only after verification can they log in with their email and password.
 
-_Image: ![Login / Register screenshot](assets/LoginRegisterScreenshot.jpg)_
+_Image:_  
+<img src="assets/LoginRegisterScreenshot.jpg" alt="Login / Register screen" width="250" />
 
 ### 2. Account Management
 
@@ -164,7 +165,8 @@ Users may also reset their password by tapping **“Reset Password.”**
 - A password reset email will be sent to them.  
 - When they tap the link, they are redirected back into the app’s Reset Password page, where they can enter a new password and then log in again using the updated credentials.
 
-_Image: ![Account page screenshot](assets/AccountPageScreenshot.jpg)_
+_Image:_  
+<img src="assets/AccountPageScreenshot.jpg" alt="Account page screenshot" width="250" />
 
 ### 3. Student Features
 
@@ -189,7 +191,8 @@ At the bottom of the activity details page, students will find a **“Register N
 - When a student registers, the organizer receives a push notification:  
   > "A new student registered for {title}. Total registered: X."
 
-_Image: ![Registration page screenshot](assets/RegistrationScreenshot.jpg)_
+_Image:_  
+<img src="assets/RegistrationScreenshot.jpg" alt="Registration page screenshot" width="250" />
 
 ### 4. Organizer Features
 
@@ -202,7 +205,8 @@ Once submitted, the activity will appear on both:
 - The **Activity** page (visible to students).  
 - The organizer’s **My List** page.
 
-_Image: ![Create activity screen](assets/CreateActivityScreenshot.jpg)_
+_Image:_  
+<img src="assets/CreateActivityScreenshot.jpg" alt="Create activity screen" width="250" />
 
 #### Editing Activities
 
@@ -216,6 +220,7 @@ Organizers can only edit activities they created themselves.
     > "{title} has been updated. Please check the details."
 
 ---
+
 
 ## Development Guide
 
@@ -282,7 +287,7 @@ These buckets store user avatars and activity images, respectively.
 #### Create Database Tables and Policies
 
 1. In the Supabase project, go to **SQL → New query**.  
-2. Open the `schema.sql` file in the project and copy its contents.  
+2. Open the [schema.sql](schema.sql) file in the project and copy its contents.  
 3. Paste the SQL into the editor and run it.
 
 This script creates the `activities`, `profiles`, and `registrations` tables and sets the row-level security (RLS) policies for profiles, registrations, and storage, including read/write access for activity images and profile photos.
