@@ -77,62 +77,19 @@ UConnect is built using modern, scalable, mobile-friendly technologies.
 
 ---
 
-## Features (Overview)
+## **Features**
 
-### Student Features
+### **Student Features**
 
-- Browse all upcoming campus events.  
-- View event details with images and full descriptions.  
-- Register and cancel registration with one tap.  
-- Receive automatic reminders 30 minutes before events.  
-- Get push notifications when an organizer updates an event.  
-- See all registered events on a personalized **My List** page.  
-- Enjoy automatic refresh of lists and details after registration or updates.
+UConnect opens with an Activity feed that streams Supabase-hosted events into responsive ActivityCard tiles, giving students imagery, dates, times, and locations in a single scroll. Tapping any card reveals an immersive detail page where galleries, logistics, and role-aware actions live side by side, enabling one-tap registration that writes to Supabase, gracefully handles duplicate attempts, and schedules an Expo local reminder thirty minutes before the start time. Because each profile stores an Expo push token, the app can also deliver remote alerts whenever an organizer updates an activity, ensuring last-minute changes reach every registered student. The “My List” tab queries registrations directly, listens to the shared refresh flag, and keeps its contents synced whenever the screen regains focus, so students always see the latest attendance state after registering or cancelling.
 
-### Organizer Features
+### **Organizer Features**
 
-- Create events with images, dates, times, and descriptions.  
-- Edit and update existing event information.  
-- Receive instant notifications when students register.  
-- View registrations and use them for event logistics planning.
+Organizers authenticate with metadata-stamped Supabase accounts to unlock the creation and editing workflow housed in `app/organizer/create.tsx`. The form combines native date/time pickers, multi-image uploads backed by Supabase Storage, validation for required logistics, and AppButton actions that persist changes before toggling the Redux refresh flag so shared feeds update for every user. Viewing an event while signed in as its organizer automatically surfaces an edit shortcut, and the organizer-specific My List filters activities by `organizer_id` so they can monitor what they have published. Each create or update operation triggers push confirmations to the organizer, and the activities service fans out additional notifications whenever students register or cancel, including live registration counts that make capacity planning easier without ever leaving the mobile app.
 
-### Cross-Functional Features
+### **Cross-Functional Features**
 
-- Role-based UI (student vs. organizer).  
-- Shared Supabase backend for secure authentication and data retrieval.  
-- Smooth navigation via Expo Router.  
-- Integrated image handling and rendering.  
-- Theme switching (light/dark).
-
----
-
-## Feature Walkthrough
-
-### Student Features
-
-UConnect opens with an Activity feed that streams Supabase-hosted events into responsive `ActivityCard` tiles, giving students imagery, dates, times, and locations in a single scroll. Tapping any card reveals an immersive detail page where galleries, logistics, and role-aware actions live side by side, enabling one-tap registration that writes to Supabase, gracefully handles duplicate attempts, and schedules an Expo local reminder thirty minutes before the start time.
-
-Because each profile stores an Expo push token, the app can also deliver remote alerts whenever an organizer updates an activity, ensuring last-minute changes reach every registered student. The **My List** tab queries registrations directly, listens to the shared refresh flag, and keeps its contents synced whenever the screen regains focus so students always see the latest attendance state after registering or cancelling.
-
-### Organizer Features
-
-Organizers authenticate with metadata-stamped Supabase accounts to unlock the creation and editing workflow housed in `app/organizer/create.tsx`. The form combines native date/time pickers, multi-image uploads backed by Supabase Storage, validation for required logistics, and `AppButton` actions that persist changes before toggling the Redux refresh flag so shared feeds update for every user.
-
-Viewing an event while signed in as its organizer automatically surfaces an edit shortcut, and the organizer-specific **My List** filters activities by `organizer_id` so they can monitor what they have published. Each create or update operation triggers push confirmations to the organizer, and the activities service fans out additional notifications whenever students register or cancel, including live registration counts that make capacity planning easier without ever leaving the mobile app.
-
-### Cross-Functional Features
-
-Cross-cutting features keep both roles coordinated through a single Expo Router tab shell that supports deep links such as `uconnect://reset-password`, allowing password-reset flows to land inside the native stack while still letting guests browse anonymously via the `LoginModal`.
-
-Supabase Auth enforces email verification, role metadata, and session persistence, while the Account screen lets authenticated users edit usernames, upload avatars into Supabase Storage, toggle the global light/dark theme (persisted with AsyncStorage), and trigger password reset emails.
-
-The root layout centralizes notification setup by:
-
-- Requesting permissions.  
-- Registering Expo push tokens.  
-- Storing tokens in Redux so confirmations, reminders, and organizer alerts continue to arrive even when the app is backgrounded.
-
-Combined with the activity refresh slice and globally shared theme state, these platform-level capabilities ensure every tab stays in sync, role-appropriate UI is enforced, and media-heavy event content renders consistently across iOS and Android.
+Cross-cutting features keep both roles coordinated through a single Expo Router tab shell that supports deep links such as `uconnect://reset-password`, allowing password-reset flows to land inside the native stack while still letting guests browse anonymously via the LoginModal. Supabase Auth enforces email verification, role metadata, and session persistence, while the account screen lets authenticated users edit usernames, upload avatars into Supabase Storage, toggle the global light/dark theme (persisted with AsyncStorage), and trigger password reset emails. The root layout centralizes notification setup by requesting permissions, registering Expo push tokens, and storing them in Redux so confirmations, reminders, and organizer alerts continue to arrive even when the app is backgrounded. Combined with the activity refresh slice and globally shared theme state, these platform-level capabilities ensure every tab stays in sync, role-appropriate UI is enforced, and media-heavy event content renders consistently across iOS, Android, and web builds.
 
 ---
 
