@@ -312,6 +312,7 @@ Spiro spearheaded the notification system by scheduling 30-minute local reminder
 
 ### Ziyan Liu
 
+Ziyan implemented the overall UI/UX polish across the app, including the Account page, Activity feed, Event details, and organizer create/edit screens, added a global persistent light/dark theme with updated tab bar icons, and refined the login/register modal (role selection, error prompts) while assisting with configuration and deployment debugging to ensure a stable, testable Android build.
 
 
 ---
