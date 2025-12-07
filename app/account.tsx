@@ -25,7 +25,7 @@ import {
 
 import LoginModal from "../components/LoginModal";
 import { uploadProfilePhoto, updateProfile } from "../lib/profile";
-import { supabase } from "lib/supabase";
+import { supabase } from "../lib/supabase";
 import { toggleTheme } from "../store/slices/themeSlice";
 
 export default function Account() {
