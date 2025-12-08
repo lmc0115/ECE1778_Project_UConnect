@@ -376,4 +376,4 @@ Implementing role-based access (organizers can only edit their own events) and E
 
 ## Video Demo
 
-Click the [link](https://youtube.com/shorts/HbBbvxaytu4?feature=share) here to watch the demo video.
+Click the [link](https://youtube.com/shorts/bcDXGChnadY) here to watch the demo video.
